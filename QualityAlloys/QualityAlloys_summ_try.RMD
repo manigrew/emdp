@@ -1,0 +1,152 @@
+---
+title: "QualityAlloys"
+author: "Manish Grewal"
+date: "26/07/2020"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 8)
+```
+
+## Executive Summary
+
+### Executive summary description here
+
+## Load libraries
+```{r loadlibs, warning=FALSE, message=FALSE}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+
+```
+
+## Set working directory
+```{r setwd}
+setwd("C:/Users/manish.grewal/emdp/R/QualityAlloys")
+```
+
+## Load the dataset
+
+```{r}
+daily_visits <- read_excel("CU46-XLS-ENG.xls", sheet = "Daily Visits", skip = 4)
+
+# Read the main worksheets from xls workbook  
+
+weekly_visits <- read_excel("CU46-XLS-ENG.xls", sheet = "Weekly Visits", skip = 4)
+financials <- read_excel("CU46-XLS-ENG.xls", sheet = "Financials", skip = 4)
+lbs_sold <- read_excel("CU46-XLS-ENG.xls", sheet = "Lbs. Sold", skip = 4)
+
+# and remove non alphabet characters from column headers (names)
+
+names(weekly_visits) <- gsub("[^a-zA-Z]+", "", names(weekly_visits))
+names(financials) <- gsub("[^a-zA-Z]+", "", names(financials))
+names(lbs_sold) <- gsub("[^a-zA-Z]+", "", names(lbs_sold))
+
+# gather columns into weekly_data
+weekly_data <- data.frame(
+  Week = weekly_visits$Week, 
+  Visits = weekly_visits$Visits,
+  UniqueVisits = weekly_visits$UniqueVisits, 
+  Revenue = financials$Revenue, 
+  Profit = financials$Profit, 
+  LbsSold = financials$LbsSold)
+
+# convert Week to ordered factored 
+weekly_data$Week <- factor(weekly_data$Week, levels = weekly_data$Week)
+
+idx_init <- which(levels(weekly_data$Week) == "Aug 24 - Aug 30")
+idx_pre  <- which(levels(weekly_data$Week) == "Jan 18 - Jan 24")
+idx_prom <- which(levels(weekly_data$Week) == "May 17 - May 23")
+idx_post <- nrow(weekly_data)
+weekly_data$Period <- c(rep("Initial Period", idx_init),
+                        rep("Pre-promotion",  idx_pre - idx_init),
+                        rep("promotion",      idx_prom - idx_pre),
+                        rep("Post-promotion", idx_post - idx_prom))
+View(weekly_data)
+```
+
+
+## 1. Column Charts 
+### Initialize the common plot data
+```{r}
+p <- ggplot(weekly_data, aes(x = Week)) +
+  scale_x_discrete(breaks = weekly_visits$Week[seq(1, nrow(weekly_visits), 2)]) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+### a. unique visits over time
+```{r}
+p +   geom_bar(aes(y = UniqueVisits), stat = "identity", fill = "blue", color = "black")
+```
+
+### b. revenue over time,
+```{r}
+p +   geom_bar(aes(y = Revenue), stat = "identity", fill = "blue", color = "black")
+```
+
+### c. profit over time
+
+```{r}
+p +   geom_bar(aes(y = Profit), stat = "identity", fill = "blue", color = "black")
+```
+
+### d. pounds sold over time.
+
+```{r}
+p +   geom_bar(aes(y = LbsSold), stat = "identity", fill = "blue", color = "black")
+```
+
+## 2. Summary by period
+
+```{r}
+by_period <- group_by(weekly_data, Period)
+my_summ <- weekly_data %>% 
+  group_by(Period) %>% 
+  select(!Week) %>% 
+  summarise(across(everything(), list(mean, median, sd, min, max)))
+
+View(my_summ)
+my_summ_init <- data.frame(as.list(my_summ[1,]), cols = 5)
+
+
+
+### Summarize the data
+
+```{r}
+by_period <- group_by(weekly_data, Period)
+
+summ <- data.frame()
+
+x <- summarise(by_period, mean = mean(Visits), median = median(Visits), sd = sd(Visits), max = max(Visits), min = min(Visits))
+
+str(x)
+summ.Visits <- data.frame(t(summarise(by_period, mean = mean(Visits), median = median(Visits), sd = sd(Visits), max = max(Visits), min = min(Visits))))
+View(summ.Visits)
+
+summ.UniqueVisits <- summarise(by_period, mean = mean(UniqueVisits), median = median(UniqueVisits), sd = sd(UniqueVisits), max = max(UniqueVisits), min = min(UniqueVisits))
+
+summ.Revenue <- summarise(by_period, mean = mean(Revenue), median = median(Revenue), sd = sd(Revenue), max = max(Revenue), min = min(Revenue))
+
+summ.Profit <- summarise(by_period, mean = mean(Profit), median = median(Profit), sd = sd(Profit), max = max(Profit), min = min(Profit))
+
+summ.LbsSold <- summarise(by_period, mean = mean(LbsSold), median = median(LbsSold), sd = sd(LbsSold), max = max(LbsSold), min = min(LbsSold))
+
+summ_init <- summary(filter(weekly_data, Period == "Initial Period"))
+View(summ_init)
+```
+
+### a. Initial period
+
+```{r}
+View(summ.Visits)
+t(summ.Visits)
+
+cbind(
+  Visits =  filter(summ.Visits, Period == "Initial Period"),
+  UniqueVisits = filter(summ.UniqueVisits, Period == "Initial Period")
+)
+```
+

@@ -1,0 +1,249 @@
+---
+title: "Churn"
+author: "Manish Grewal"
+date: "29/07/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width = 7, fig.height = 4)
+```
+
+## Load the libraries
+```{r load_libs, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+```
+
+## Set working directory
+```{r setwd}
+setwd("C:/Users/manish.grewal/emdp/R/churn")
+```
+
+## Load the dataset
+```{r load_dataset}
+churn <- read.csv("churn.csv")
+```
+
+# Use the churn data set, and complete the following exercises:
+
+## 1. Explore whether there are missing values for any of the variables.
+
+```{r}
+any( is.na( churn ) )
+```
+
+There are no missing values. `summary(churn)` also does not show any `NA` values.
+
+```{r include=FALSE}
+#summ <- data.frame(do.call(rbind, lapply(churn, summary)))
+#summ$Mean <- gsub("^(\\d+\\.\\d\\d\\d)\\d+", "\\1", summ$Mean)
+#knitr::kable(summ, digits = 3)
+```
+
+```{r fig.width=10, fig.height=10}
+churn$Area.Code = as.character(churn$Area.Code)
+churn %>% 
+  select_if(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+    facet_wrap(~ key, scales = "free") +
+    geom_histogram() +
+    labs(title = "Histogram of numeric variables") +
+    theme_bw()
+```
+
+```{r}
+churn %>% 
+  select_if(is.character) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+    facet_wrap(~ key, scales = "free") + 
+    geom_histogram(stat = "count") +
+    labs(title = "Histogram of character variables") +
+    theme_bw()
+
+```
+
+
+Histogram of Area.Code shows only 3 different values, which may require further exploration as the same 3 area codes are appearing for different states.
+
+VMail.Message also shows a high number of records with 0 value. 
+
+## 2. Use a graph to visually determine whether there are any outliers among the number of calls to customer service.
+
+```{r}
+ggplot(churn) +
+  aes(x = "", y = CustServ.Calls) +
+  geom_boxplot(fill = "blue") +
+  scale_y_continuous(n.breaks = 10) +
+  theme_bw()
+```
+
+The box plot shows the values 4 to 9 are outliers among the number of calls to customer service.
+
+## 3. Identify the range of customer service calls that should be considered outliers, using:
+
+### a. the Z-score method;  
+
+```{r}
+churn$CustServ.Calls_zscore <- (churn$CustServ.Calls - mean(churn$CustServ.Calls)) / sd(churn$CustServ.Calls) 
+
+outliers <- churn %>%
+  filter(CustServ.Calls_zscore < -3 |
+         CustServ.Calls_zscore > 3) %>% 
+  select(CustServ.Calls, CustServ.Calls_zscore)
+
+sort(unique(outliers$CustServ.Calls))
+```
+
+Outliers using the z-score method are the customers who made the following number of calls:  
+**`r sort(unique(outliers$CustServ.Calls))`**
+
+### b. the IQR method  
+
+```{r}
+summary(churn$CustServ.Calls)
+Q1 <- as.numeric(quantile(churn$CustServ.Calls, 0.25)); Q1
+Q3 <- as.numeric(quantile(churn$CustServ.Calls, 0.75)); Q3
+IQR <- Q3 - Q1; IQR
+
+outliers <- churn %>%
+  filter(CustServ.Calls < Q1 - 1.5*IQR | CustServ.Calls > Q3 + 1.5*IQR) %>%
+  select(CustServ.Calls)
+sort(unique(outliers$CustServ.Calls))
+```
+
+Outliers using the IQR method are the customers who made the following number of calls:  
+**`r sort(unique(outliers$CustServ.Calls))`**
+ 
+## 4. Transform the day minutes attribute using Z-score standardization.
+
+```{r}
+churn$Day.Mins_zscore <- (churn$Day.Mins - mean(churn$Day.Mins)) / sd(churn$Day.Mins) 
+head(churn$Day.Mins_zscore)
+```
+
+## 5. Work with skewness as follows:  
+### a. Calculate the skewness of day minutes.  
+```{r}
+skew <- 3 * (mean(churn$Day.Mins) - median(churn$Day.Mins)) / sd(churn$Day.Mins)
+skew
+```
+
+### b. Then calculate the skewness of the Z-score standardized day minutes. Comment.  
+```{r}
+skew_z <- 3 * (mean(churn$Day.Mins_zscore) - median(churn$Day.Mins_zscore)) / sd(churn$Day.Mins_zscore)
+skew_z
+```
+
+The skewness remains the same after z-score standardization.
+
+### c. Based on the skewness value, would you consider day minutes to be skewed or nearly perfectly symmetric?  
+
+The skewness of Day.Mins (`r skew`) is close to zero but positive. Therefore, day minutes is nearly perfectly symmetric with a very slight right skewness.
+
+## 6. Construct a normal probability plot of day minutes. Comment on the normality of the data.  
+
+```{r}
+ggplot(churn, aes(sample = Day.Mins)) +
+  stat_qq(col = "blue") +
+  stat_qq_line(col = "red")
+```
+
+As the sample matches the normal line very closely, the data is nearly perfectly normal. 
+
+## 7. Work with international minutes as follows:  
+### a.  Construct a normal probability plot of international minutes.  
+
+```{r}
+ggplot(churn, aes(sample = Intl.Mins)) +
+  stat_qq(col = "blue") +
+  stat_qq_line(col = "red")
+```
+
+The normal probability curve indicates left skewness. This is confirmed from the summary of Intl.Mins where the mean (10.24) is a less than the median (10.3). The skewness calculation returns a negative value (`r 3 * (mean(churn$Intl.Mins) - median(churn$Intl.Mins)) / sd(churn$Intl.Mins)`) and confirms the interpretation of left skewness.
+
+```{r}
+summary(churn$Intl.Mins)
+skew <- 3 * (mean(churn$Intl.Mins) - median(churn$Intl.Mins)) / sd(churn$Intl.Mins)
+skew
+```
+
+
+### b.  What is preventing this variable from being normally distributed.  
+
+```{r}
+ggplot(churn) +
+  aes(x = "", y = Intl.Mins) +
+  geom_boxplot(fill = "blue") +
+  scale_y_continuous(n.breaks = 10) +
+  theme_bw()
+
+```
+
+```{r}
+ggplot(churn, aes(Intl.Mins)) +
+  geom_histogram(bins = 40, color = "black", fill = "blue")
+```
+
+```{r}
+ggplot(churn, aes(Intl.Mins)) +
+  geom_histogram(aes(y = ..density..), bins = 40, color = "black", fill = "blue") +
+  stat_function(fun = dnorm, args = list(mean(churn$Intl.Mins), sd(churn$Intl.Mins)), color = "red", size = 2)
+
+```
+
+The boxplot shows outlier below 3 and above 17.5. However, the histogram shows around 20 outliers with value 0. This concentration of outliers with 0 value is preventing the data from being normally distributed.
+
+### c.  Construct a flag variable to deal with the situation in (b).  
+
+```{r}
+churn <- mutate(churn, Intl.Mins.NZ = ifelse(Intl.Mins == 0, 0, 1))
+```
+
+### d.  Construct a normal probability plot of the derived variable nonzero international 	minutes.  
+
+```{r}
+ggplot(churn, aes(sample = Intl.Mins.NZ)) +
+  stat_qq(col = "blue") +
+  stat_qq_line(col = "red")
+```
+
+### e.  Comment on the normality of the derived variable.
+
+The derived variable shows the normal probability where its value is 1 and diverges where its value is zero. The zero values are making the distribution left skewed.
+
+```{r}
+churn$Intl.Mins.NZ_z <- scale(churn$Intl.Mins.NZ)
+skew <- 3 * (mean(churn$Intl.Mins.NZ_z) - median(churn$Intl.Mins.NZ_z)) / sd(churn$Intl.Mins.NZ_z)
+skew
+```
+
+
+## 8. Transform the night minutes attribute using Z-score standardization. Using a graph, describe the range of the standardized values.
+
+```{r}
+churn$Night.Mins_zscore <- scale(churn$Night.Mins)
+
+ggplot(churn) +
+  aes(y = "", x = Night.Mins_zscore) +
+  geom_boxplot(fill = "blue") +
+  scale_x_continuous(n.breaks = 20) +
+  theme_bw()
+
+```
+
+From the boxplot, we can see that 
+
+* the z-score has a median of 0
+* Ist quartile = -0.7
+* 3rd quartile = 0.7
+* the IQR is Q3 - Q1 = 1.4
+* the range is from -2.6 to 2.6 (excluding outliers)
+* the positive outliers range from 2.8 to 3.8 
+* the negative outliers range from -3.5 to -2.6 
+
+

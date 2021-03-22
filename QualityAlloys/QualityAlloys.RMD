@@ -1,0 +1,763 @@
+---
+title: "Quality Alloys"
+author: "Manish Grewal"
+date: "26/07/2020"
+output:
+  html_document: 
+    toc: true
+  word_document: 
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, fig.width = 7, fig.height = 4)
+```
+
+```{r load_libs, warning=FALSE, message=FALSE}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(moments)
+
+```
+
+```{r setwd}
+setwd("C:/Users/manish.grewal/emdp/R/QualityAlloys")
+```
+
+```{r load_dataset}
+
+# Read the main worksheets from xls workbook  
+daily_visits <- read_excel("CU46-XLS-ENG.xls", sheet = "Daily Visits", skip = 4)
+weekly_visits <- read_excel("CU46-XLS-ENG.xls", sheet = "Weekly Visits", skip = 4)
+financials <- read_excel("CU46-XLS-ENG.xls", sheet = "Financials", skip = 4)
+lbs_sold <- read_excel("CU46-XLS-ENG.xls", sheet = "Lbs. Sold", skip = 4)
+
+# and remove non alphabet characters from column headers (names)
+
+names(weekly_visits) <- gsub("[^a-zA-Z]+", "", names(weekly_visits))
+names(financials) <- gsub("[^a-zA-Z]+", "", names(financials))
+names(lbs_sold) <- gsub("[^a-zA-Z]+", "", names(lbs_sold))
+
+# gather columns into weekly_data
+weekly_data <- data.frame(
+  Week = weekly_visits$Week, 
+  Visits = weekly_visits$Visits,
+  UniqueVisits = weekly_visits$UniqueVisits, 
+  Revenue = financials$Revenue, 
+  Profit = financials$Profit, 
+  LbsSold = financials$LbsSold)
+
+# convert Week to ordered factored 
+weekly_data$Week <- factor(weekly_data$Week, levels = weekly_data$Week)
+
+idx_init <- which(levels(weekly_data$Week) == "Aug 24 - Aug 30")
+idx_pre  <- which(levels(weekly_data$Week) == "Jan 18 - Jan 24")
+idx_prom <- which(levels(weekly_data$Week) == "May 17 - May 23")
+idx_post <- nrow(weekly_data)
+weekly_data$Period <- c(rep("Initial Period", idx_init),
+                        rep("Pre-promotion",  idx_pre - idx_init),
+                        rep("Promotion",      idx_prom - idx_pre),
+                        rep("Post-promotion", idx_post - idx_prom))
+
+
+weekly_data$Period <- factor(weekly_data$Period, ordered = TRUE, levels = c("Initial Period", "Pre-promotion", "Promotion", "Post-promotion"))
+
+```
+
+## 1. How many people visit the website, and how do they come to website
+
+```{r es1_a}
+p <- ggplot(weekly_data, aes(x = Week)) +
+  scale_x_discrete(breaks = weekly_visits$Week[seq(1, nrow(weekly_visits), 2)]) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+### Unique visits over time
+```{r es1_a1}
+p +   geom_bar(aes(y = UniqueVisits), stat = "identity", fill = "blue", color = "black") +
+  geom_vline(xintercept = c(idx_init, idx_pre, idx_prom)) +
+  geom_label(aes(x = 7, y = 3500, label = "Initial Period")) +
+  geom_label(aes(x = 23, y = 3500, label = "Pre-promotion")) +
+  geom_label(aes(x = 47, y = 3500, label = "Promotion")) +
+  geom_label(aes(x = 60, y = 3500, label = "Post-promotion")) 
+```
+
+### Summary of unique visits by period  
+
+```{r}
+summ_uv_by_period <- select(weekly_data, Period, UniqueVisits) %>%
+  group_by(Period) %>%
+  summarise(mean = mean(UniqueVisits), median = median(UniqueVisits), sd = sd(UniqueVisits), minimum = min(UniqueVisits), maximum = max(UniqueVisits))
+
+knitr::kable(summ_uv_by_period, caption = "UNIQUE VISTS BY PERIOD")
+```
+
+### Mean unique visits by period  
+
+```{r}
+ggplot(summ_uv_by_period, aes(x = Period, y = mean)) +
+  geom_col() +
+  ylab("mean (UniqueVisits)")
+
+```
+
+
+### How do people come to the website:    
+* Most of the people come through referring sites, search engines and direct traffic in that order.  
+* Google and sedoparking.com are the predominant sources of referral traffic.  
+* Google and yahoo are the top referring search engines.  
+* Bulk of the traffic is from the American continents.  
+* Bulk of the users use Internet Explore or Firefox on Windows.  
+
+```{r}
+all_traffic <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B7:C11")
+all_traffic$Visits <- lapply(all_traffic$Visits, function(x) {as.numeric(gsub(",", "", x))})
+all_traffic$Visits <- as.numeric(c(all_traffic$Visits))
+names(all_traffic)[1] <- 'header'
+
+top_ten_ref <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B14:C24")
+top_ten_ref$Visits <- lapply(top_ten_ref$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_ref$Visits <- as.numeric(c(top_ten_ref$Visits))
+
+top_ten_eng <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B27:C37")
+top_ten_eng$Visits <- lapply(top_ten_eng$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_eng$Visits <- as.numeric(c(top_ten_eng$Visits))
+
+top_ten_geo <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B40:C50")
+top_ten_geo$Visits <- lapply(top_ten_geo$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_geo$Visits <- as.numeric(c(top_ten_geo$Visits))
+
+top_ten_bro <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B54:C64")
+top_ten_bro$Visits <- lapply(top_ten_bro$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_bro$Visits <- as.numeric(c(top_ten_bro$Visits))
+
+top_ten_os  <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B68:C78")
+top_ten_os$Visits <- lapply(top_ten_os$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_os$Visits <- as.numeric(c(top_ten_os$Visits))
+```
+
+#### a. All Traffic Sources
+```{r q10_a0}
+ggplot(all_traffic, aes(x = reorder(header, -Visits), y = Visits)) +
+  geom_col() +
+  xlab("All Traffic Sources")
+```
+
+There is significant Direct Traffic, which could be a result of the website link socialized in the promotion. Traffic from search engines could be increased with the help of SEO.
+
+#### b. Top Ten Referring Sites
+```{r q10_b0}
+ggplot(top_ten_ref, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Top Ten Referring Sites")
+
+```
+
+The paid listings on globalspec are generating more referrals than thomasnet, however, both of them together are not generating much referrals compared to google ads. The traffic from sedoparking.com may need to be investigated more as it could indicate users mistyping the QA website address and landing on a parked domain with a similar name.
+
+#### c. Top Ten Search Engine Sources of Visits
+```{r q10_c0}
+ggplot(top_ten_eng, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  xlab("Top Ten Search Engine Sources of Visits")
+```
+
+As expected, google is the top search engine source of visits. SEO should be targeted at google search engine.
+
+#### d. Top Ten Geographic Sources by Sub Continent Region
+```{r q10_d0}
+ggplot(top_ten_geo, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Top Ten Geographic Sources by Sub Continent Region")
+```
+
+As the traffic is coming from various geographies, it may be a good idea to support multiple languages on the website (internationalization).
+
+#### e. Top Ten Browsers Used
+```{r q10_e0}
+ggplot(top_ten_bro, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Top Ten Browsers Used")
+```
+
+Website development / testing should focus on Internet Explorer and Firefox compatibility / support.
+
+#### f. Top Ten Operating Systems Used
+```{r q10_f0}
+ggplot(top_ten_os, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Top Ten Operating Systems Used")
+```
+
+Website development / testing should focus on Windows platform, followed by Mac and Linux.
+
+## 2. Is the website generating interest, and does this interest yield actual sales?
+
+The website generated interest in the Promotion period which can be seen above by the increased number of Unique Visits over the promotion period. However, the interest did not yield actual sales as we see a decreasing Lbs. Sold over the four periods.
+
+### Summary of Lbs. Sold by Period:  
+
+```{r}
+summ_ls_by_period <- select(weekly_data, Period, LbsSold) %>%
+  group_by(Period) %>%
+  summarise(mean = mean(LbsSold), median = median(LbsSold), sd = sd(LbsSold), minimum = min(LbsSold), maximum = max(LbsSold))
+
+knitr::kable(summ_ls_by_period, caption = "LBS. SOLD BY PERIOD")
+```
+
+### Mean Lbs. Sold by period  
+
+```{r}
+ggplot(summ_ls_by_period, aes(x = Period, y = mean)) +
+  geom_col() +
+  ylab("mean (Lbs. Sold)")
+
+```
+
+### Comparison of Unique Visits and Lbs. Sold after Z-score standardization:
+
+```{r fig.width=10, fig.height=6}
+
+weekly_data$Visits_z = scale(weekly_data$Visits)
+weekly_data$LbsSold_z = scale(weekly_data$LbsSold)
+
+my_colors <- c("Visits z-score" = "Red", "LbsSold z-score" = "blue", "Visits_smooth" = "blue", "LbsSold_smooth" = "red")
+
+ggplot(weekly_data, aes(Week)) +
+  geom_line(aes(y = Visits_z, group = Period, color="Visits z-score")) +
+  #geom_smooth(aes(y = Visits_z, group = Period, color="Visits_smooth"), method = "loess") +
+  geom_line(aes(y = LbsSold_z, group = Period, color = "LbsSold z-score")) +
+  #geom_smooth(aes(y = LbsSold_z, group = Period, color = "LbsSold_smooth", method = "loess")) +
+  scale_color_manual(name = "", values = my_colors) + # legend
+  scale_x_discrete(breaks = weekly_visits$Week[seq(1, nrow(weekly_visits), 2)]) +
+  theme_bw() +
+  ylab("z-score") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  
+  #geom_col(aes(y = LbsSold, position = "dodge"), stat = "identity", color = "red")
+```
+
+### Scatterplot of Lbs. Sold and Unique Vists
+
+```{r}
+ggplot(weekly_data, aes(x = LbsSold, y = UniqueVisits)) +
+  geom_point() + 
+  geom_smooth()
+```
+
+### Coefficient of correlation of Lbs. Sold and Unique Visits
+
+```{r}
+cor_coef <- cor(weekly_data$UniqueVisits, weekly_data$LbsSold, method = "pearson")
+cor_coef
+```
+
+Small negative value shows that Lbs. Sold does not increase or decrease with Unique Visits.
+
+## 3. Check whether the data variables (if applicable) follows the normality assumption.
+
+### Normality assumption for Revenue
+
+```{r}
+ggplot(weekly_data, aes(sample = Revenue)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(col = "red")
+
+```
+
+Revenue is approximately normal but slightly right skewed. Skewness:
+
+```{r}
+skew <- 3 * (mean(weekly_data$Revenue) - median(weekly_data$Revenue)) / sd(weekly_data$Revenue)
+skew
+```
+
+
+### Normality assumption for Profit
+
+```{r}
+ggplot(weekly_data, aes(sample = Profit)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(col = "red") 
+
+```
+
+Profit is approximately normal but significantly right skewed. Skewness:
+
+```{r}
+skew <- 3 * (mean(weekly_data$Profit) - median(weekly_data$Profit)) / sd(weekly_data$Profit)
+skew
+```
+
+
+### Normality assumption for Lbs. Sold
+
+```{r}
+ggplot(weekly_data, aes(sample = LbsSold)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(col = "red") 
+
+```
+
+Lbs. Sold is normal with a very low right skewness. Skewness:
+
+```{r}
+skew <- 3 * (mean(weekly_data$LbsSold) - median(weekly_data$LbsSold)) / sd(weekly_data$LbsSold)
+skew
+```
+
+### Normality assumption for Visits
+
+```{r}
+ggplot(daily_visits, aes(sample = Visits)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(col = "red")
+```
+
+Visits shows a high degree of right skewness. Skewness:
+
+```{r}
+skew <- 3 * (mean(weekly_data$Visits) - median(weekly_data$Visits)) / sd(weekly_data$Visits)
+skew
+```
+
+### Normality assumption for UniqueVisits
+
+```{r}
+ggplot(weekly_data, aes(sample = UniqueVisits)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(col = "red")
+
+```
+
+UniqueVisits shows a high degree of right skewness. Skewness:  
+
+```{r}
+skew <- 3 * (mean(weekly_data$UniqueVisits) - median(weekly_data$UniqueVisits)) / sd(weekly_data$UniqueVisits)
+skew
+```
+
+
+# PART 1 - EXECUTIVE SUMMARY
+
+## Evaluation of the goals of the company website
+
+### (a) drive new sales - **NOT MET**   
+    
+The data analysis presented in PART B of this document clearly shows that revenue and quantity of material sold have been reducing over the period of analysis. Thus, we can say that the website has not been able to drive new sales even during the promotion period.
+
+### (b) make product and contact information available - **MAY BE MET**
+
+This goal can be considered as met if we assume that the contact information has been presented well on the website, .
+    
+### (c) give or add legitimacy to its brand. - **MAY BE MET**
+
+Just the existence of an official company website does add legitimacy to the branch. However, a survey given to the right audience, customers, potential customers and general public, may be able to shed more light on this. The available data is not sufficient to answer whether this goal has been met.  
+
+## Recommendations from demographics:
+
+##### **Note:** Refer to Q10 below for more details on demographics.
+
+There is significant Direct Traffic, which could be a result of the website link socialized in the promotion. Traffic from search engines could be increased with the help of SEO (Search engine optimization).
+
+The paid listings on globalspec.com are generating more referrals than thomasnet.com, however, both of them together are not generating much referrals compared to google ads.
+
+The traffic from sedoparking.com may need to be investigated more as it could indicate users mistyping the QA website address and landing on a parked domain with a similar name.
+
+As expected, google is the top search engine source of visits. SEO should be targeted at google search engine.
+
+As the traffic is coming from various geographies, it may be a good idea to support multiple languages on the website (internationalization).
+
+Website development / testing should focus on Internet Explorer and Firefox compatibility / support on Windows platform, followed by Mac and Linux as the majority of users are using this stack.  
+
+
+# PART 2 - DATA ANALYSIS
+
+## 1. Column Charts 
+
+```{r q1}
+p <- ggplot(weekly_data, aes(x = Week)) +
+  scale_x_discrete(breaks = weekly_visits$Week[seq(1, nrow(weekly_visits), 2)]) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+### a. Unique visits over time
+```{r q1_a}
+p +   geom_bar(aes(y = UniqueVisits), stat = "identity", fill = "blue", color = "black")
+```
+
+### b. Revenue over time,
+```{r q1_b}
+p +   geom_bar(aes(y = Revenue), stat = "identity", fill = "blue", color = "black")
+```
+
+### c. Profit over time
+
+```{r q1_c}
+p +   geom_bar(aes(y = Profit), stat = "identity", fill = "blue", color = "black")
+```
+
+### d. Pounds sold over time.
+
+```{r q1_d}
+p +   geom_bar(aes(y = LbsSold), stat = "identity", fill = "blue", color = "black")
+```
+
+## 2. Summary by period
+
+Below are the summaries of the variables for each period.
+
+```{r q2}
+
+by_period <- group_by(weekly_data, Period)
+
+summ <- by_period %>% 
+  select_if(is.numeric) %>% 
+  summarise(across(everything(), list(mean, median, sd, min, max) 
+                   #, .names = c("{col}.{fn}")
+                   ))
+
+summ_init <- as.data.frame(
+  matrix(as.numeric(summ[1, 2:26]), nrow = 5), 
+  row.names = c('mean', 'median', 'std. dev.', 'minimum', 'maximum'))
+names(summ_init) <- names(by_period)[2:6]
+
+summ_pre  <- as.data.frame(
+  matrix(as.numeric(summ[2, 2:26]), nrow = 5),
+  row.names = c('mean', 'median', 'std. dev.', 'minimum', 'maximum'))
+names(summ_pre) <- names(by_period)[2:6]
+
+summ_prom <- as.data.frame(
+  matrix(as.numeric(summ[3, 2:26]), nrow = 5),
+  row.names = c('mean', 'median', 'std. dev.', 'minimum', 'maximum'))
+names(summ_prom) <- names(by_period)[2:6]
+
+summ_post <- as.data.frame(
+  matrix(as.numeric(summ[4, 2:26]), nrow = 5),
+  row.names = c('mean', 'median', 'std. dev.', 'minimum', 'maximum'))
+names(summ_post) <- names(by_period)[2:6]
+
+```
+
+
+### a. Summary table of Initial Period
+```{r q2_a}
+knitr::kable(summ_init, caption = "VISIT AND FINANCIAL SUMMARY MEASURES - INITIAL PERIOD")
+
+
+```
+
+### b. Summary table of Pre-promotion Period
+```{r q2_b}
+knitr::kable(summ_pre, caption = "VISIT AND FINANCIAL SUMMARY MEASURES - PRE PROMOTION PERIOD")
+
+
+```
+
+### c. Summary table of Promotion Period
+```{r q2_c}
+knitr::kable(summ_prom, caption = "VISIT AND FINANCIAL SUMMARY MEASURES - PROMOTION PERIOD")
+
+
+```
+
+### d. Summary table of Post-promotion Period
+```{r q2_d}
+knitr::kable(summ_post, caption = "VISIT AND FINANCIAL SUMMARY MEASURES - POST PROMOTION PERIOD")
+
+```
+
+## 3. Column chart of the means over the four periods
+
+```{r q3}
+p <- ggplot(summ, aes(x = Period))
+```
+
+### a. Mean Visits by Period
+```{r q3_a}
+p + geom_col(aes(y = Visits_1))
+```
+
+### b. Mean Unique Visits by Period
+```{r q3_b}
+# r, fig.show="hold", fig.width=3
+p + geom_col(aes(y = UniqueVisits_1))
+```
+
+### c. Mean Revenue by Period
+```{r q3_c}
+p + geom_col(aes(y = Revenue_1))
+```
+
+### d. Mean Profit by Period
+```{r q3_d}
+p + geom_col(aes(y = Profit_1))
+```
+
+### e. Mean Lbs. Sold by Period
+```{r q3_e}
+p + geom_col(aes(y = LbsSold_1))
+```
+
+## 4. Summary of findings thus far
+
+Average visits and average unique visits have shown a marked increase in promotion period. However, profit, revenue and lbs. sold show a steady declining trend over the four periods. This suggests that the website promotion did not have a positive effect on financials.
+
+## 5. Scatter plot of Revenue and Lbs. Sold
+
+```{r q5_a}
+ggplot(weekly_data, aes(LbsSold, Revenue)) +
+  geom_point() +
+  geom_smooth()
+```
+
+### b. Coefficient of Correlation
+
+```{r q5_b}
+
+cor_coef <- cor(weekly_data$LbsSold, weekly_data$Revenue, method = "pearson")
+cor_coef
+```
+
+## 6. Scatter plot of Visits and Revenue
+
+```{r q6_a}
+ggplot(weekly_data, aes(Visits, Revenue)) +
+  geom_point() +
+  geom_smooth()
+
+```
+
+#### b. Coefficient of Correlation
+
+```{r q6_b}
+
+cor_coef <- cor(weekly_data$Visits, weekly_data$Revenue, method = "pearson")
+cor_coef
+```
+
+## 7. Summary of results
+
+The scatter plot of Revenue and Lbs. Sold shows a high degree of correlation. 
+
+The scatter plot of Revenue and Visits mirrors the earlier observations from the column chart - revenue does not increase or decrease with visits. Thus the website did not meet the goal of driving sales.
+
+## 8. Modeling data
+
+### a. Summary of Lbs. Sold data per week
+
+```{r q8_a}
+paste("Mean:",      mean(lbs_sold$LbsSold))
+paste("Median:",    median(lbs_sold$LbsSold))
+paste("Std. Dev.:", sd(lbs_sold$LbsSold))
+paste("Minimum:",   min(lbs_sold$LbsSold))
+paste("Maximum:",   max(lbs_sold$LbsSold))
+```
+
+### b. Histogram of the pounds of material sold data.
+
+```{r q8_b}
+ggplot(lbs_sold, aes(LbsSold), color = "blue") +
+  geom_histogram()
+```
+
+### c. Histogram description
+
+Histogram appears bell shaped with a few outliers on the right side. Also, mean is greater than median, so the data is right skewed.
+
+### d. Empirical rule
+
+```{r  q8_d}
+lbs_sold$zscore <- scale(lbs_sold$LbsSold)
+
+emp_rule <- data.frame(
+  "Interval" = c("mean B1 1 std. dev.", "mean B1 2 std. dev.", "mean B1 3 std. dev. 99%"),
+  "TheoreticalPctOfData" = c(68, 95, 99)
+  )
+
+emp_rule$TheoreticalNoOfObs <- emp_rule$TheoreticalPctOfData * nrow(lbs_sold) / 100
+
+emp_rule$ActualNoOfObs <- c(
+  nrow(filter(lbs_sold, zscore >= -1, zscore <= 1)),
+  nrow(filter(lbs_sold, zscore >= -2, zscore <= 2)),
+  nrow(filter(lbs_sold, zscore >= -3, zscore <= 3)))
+knitr::kable(emp_rule)
+```
+
+
+### e. Refine empirical rule
+
+```{r q8_e}
+emp_rule <- data.frame(
+  "Interval" = c(
+    "mean + 1 std. dev.", 
+    "mean - 1 std. dev.", 
+    "1 std. dev. to 2 std. dev.", 
+    "-1 std. dev. to -2 std. dev.", 
+    "2 std. dev. to 3 std. dev.", 
+    "-2 std. dev. to -3 std. dev.")
+  )
+
+n <- 100000 # sufficently high number to get theoretical pct
+set.seed(123)
+rn <- data.frame(rn = rnorm(n))
+
+emp_rule$rn <- c(
+  nrow(filter(rn, rn >= 0, rn <= 1)),
+  nrow(filter(rn, rn >= -1, rn <= 0)),
+  nrow(filter(rn, rn >= 1, rn <= 2)),
+  nrow(filter(rn, rn >= -2, rn <= -1)),
+  nrow(filter(rn, rn >= 2,  rn <= 3)),
+  nrow(filter(rn, rn >= -3, rn <= -2)))
+
+emp_rule$TheoreticalPctOfData <- emp_rule$rn * 100 / n
+emp_rule$TheoreticalNoOfObs   <- round(emp_rule$TheoreticalPctOfData * nrow(lbs_sold) / 100)
+
+emp_rule$ActualNoOfObs <- c(
+  nrow(filter(lbs_sold, zscore >= 0, zscore <= 1)),
+  nrow(filter(lbs_sold, zscore >= -1, zscore <= 0)),
+  nrow(filter(lbs_sold, zscore >= 1, zscore <= 2)),
+  nrow(filter(lbs_sold, zscore >= -2, zscore <= -1)),
+  nrow(filter(lbs_sold, zscore >= 2,  zscore <= 3)),
+  nrow(filter(lbs_sold, zscore >= -3, zscore <= -2)))
+
+emp_rule$rn <- NULL
+knitr::kable(emp_rule)
+
+```
+
+### f. Is pound of material sold bell shaped?
+
+```{r q8_f}
+ggplot(lbs_sold, aes(sample = LbsSold)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(col = "red") +
+  ylab("LbsSold")
+
+```
+
+
+From the normal probability plot, we can see the LbsSold data approximates the bell shape but not exactly.
+
+### g. Skweness and Kurtosis
+
+```{r q8_g}
+skew <- 3 * (mean(lbs_sold$LbsSold) - median(lbs_sold$LbsSold)) / sd(lbs_sold$LbsSold)
+paste("Skewness using formula 3*(mean-median)/sd:", skew)
+
+paste("Skewness using library:", skewness(lbs_sold$LbsSold))
+paste("Kurtosis:", kurtosis(lbs_sold$LbsSold))
+```
+
+
+## 9. Comparison of the distribution of the pounds sold data with daily visit data.
+
+```{r q9}
+ggplot(daily_visits, aes(sample = Visits)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(col = "red") +
+  ylab("Daily Visits")
+
+```
+
+Daily visits data is less bell shaped compared to the Lbs sold data.
+
+The empirical rule shows the actual number of observations matches the theoretical number of observations within 2nd and 3rd sd, but there is huge difference in the first sd - 314 (68%) theoretical vs 392 (85%) actual).
+
+The mean is greater than median, so the data is right skewed. Skewness and Kurtosis are also high compared to Lbs Sold data.
+
+## 10. Demographics
+
+```{r q10}
+all_traffic <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B7:C11")
+all_traffic$Visits <- lapply(all_traffic$Visits, function(x) {as.numeric(gsub(",", "", x))})
+all_traffic$Visits <- as.numeric(c(all_traffic$Visits))
+names(all_traffic)[1] <- 'header'
+
+top_ten_ref <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B14:C24")
+top_ten_ref$Visits <- lapply(top_ten_ref$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_ref$Visits <- as.numeric(c(top_ten_ref$Visits))
+
+top_ten_eng <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B27:C37")
+top_ten_eng$Visits <- lapply(top_ten_eng$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_eng$Visits <- as.numeric(c(top_ten_eng$Visits))
+
+top_ten_geo <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B40:C50")
+top_ten_geo$Visits <- lapply(top_ten_geo$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_geo$Visits <- as.numeric(c(top_ten_geo$Visits))
+
+top_ten_bro <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B54:C64")
+top_ten_bro$Visits <- lapply(top_ten_bro$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_bro$Visits <- as.numeric(c(top_ten_bro$Visits))
+
+top_ten_os  <- read_excel("CU46-XLS-ENG.xls", sheet = "Demographics", range = "B68:C78")
+top_ten_os$Visits <- lapply(top_ten_os$Visits, function(x) {as.numeric(gsub(",", "", x))})
+top_ten_os$Visits <- as.numeric(c(top_ten_os$Visits))
+```
+
+## a. All Traffic Sources
+```{r q10_a}
+ggplot(all_traffic, aes(x = reorder(header, -Visits), y = Visits)) +
+  geom_col() +
+  xlab("All Traffic Sources")
+```
+
+There is significant Direct Traffic, which could be a result of the website link socialized in the promotion. Traffic from search engines could be increased with the help of SEO (Search engine optimization).
+
+## b. Top Ten Referring Sites
+```{r q10_b}
+ggplot(top_ten_ref, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Top Ten Referring Sites")
+
+```
+
+The paid listings on globalspec are generating more referrals than thomasnet, however, both of them together are not generating much referrals compared to google ads.
+
+The traffic from sedoparking.com may need to be investigated more as it could indicate users mistyping the QA website address and landing on a parked domain with a similar name.
+
+## c. Top Ten Search Engine Sources of Visits
+```{r q10_c}
+ggplot(top_ten_eng, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  xlab("Top Ten Search Engine Sources of Visits")
+```
+
+As expected, google is the top search engine source of visits. SEO should be targeted at google search engine.
+
+## d. Top Ten Geographic Sources by Sub Continent Region
+```{r q10_d}
+ggplot(top_ten_geo, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Top Ten Geographic Sources by Sub Continent Region")
+```
+
+As the traffic is coming from various geographies, it may be a good idea to support multiple languages on the website (internationalization).
+
+## e. Top Ten Browsers Used
+```{r q10_e}
+ggplot(top_ten_bro, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Top Ten Browsers Used")
+```
+
+Website development / testing should focus on Internet Explorer and Firefox compatibility / support.
+
+## f. Top Ten Operating Systems Used
+```{r q10_f}
+ggplot(top_ten_os, aes(reorder(...1, -Visits), Visits)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Top Ten Operating Systems Used")
+```
+
+Website development / testing should focus on Windows platform, followed by Mac and Linux.
+

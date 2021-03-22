@@ -1,0 +1,176 @@
+PI,Sprint,Team,Project,Committed,Delivered,Delpct
+20-3,2020-17,Polaris,CAT Angular Migration,63,63,100
+20-3,2020-17,FiniteLoop,Catalyst Portal,64,46,72
+20-3,2020-17,Performix,Console,39,31,79
+20-3,2020-17,Vega,Course player (HTML5) - On Kanban project for Angular Upgrade,18,18,100
+20-3,2020-17,DataTycoons,Analytics,15,15,100
+20-3,2020-17,Mavericks,LCEC,24,24,100
+20-3,2020-17,Titans,Certification Manager,28,23,82
+20-3,2020-17,Avengers,Campaign Manager,23,18,78
+20-3,2020-16,Polaris,CAT Angular Migration,60,52,87
+20-3,2020-16,FiniteLoop,Catalyst Portal,55,39,71
+20-3,2020-16,Performix,Console,68,68,100
+20-3,2020-16,Vega,Course player (HTML5) - On Kanban project for Angular Upgrade,4,4,100
+20-3,2020-16,DataTycoons,Analytics,15,15,100
+20-3,2020-16,Mavericks,LCEC,24,24,100
+20-3,2020-16,Titans,Certification Manager,28,28,100
+20-3,2020-16,Avengers,Campaign Manager,16,16,100
+20-3,2020-15,Polaris,CAT Angular Migration,57,57,100
+20-3,2020-15,FiniteLoop,Catalyst Portal,64,56,88
+20-3,2020-15,Performix,Console,58,32,55
+20-3,2020-15,Vega,Course player (HTML5) - On Kanban project for Angular Upgrade,5,5,100
+20-3,2020-15,DataTycoons,Analytics,26,26,100
+20-3,2020-15,Mavericks,LCEC,20,12,60
+20-3,2020-15,Titans,Certification Manager,31,31,100
+20-3,2020-15,Avengers,Campaign Manager,17,17,100
+20-3,2020-14,Polaris,CAT Angular Migration,42,42,100
+20-3,2020-14,FiniteLoop,Catalyst Portal,57,39,68
+20-3,2020-14,Performix,Console,32,19,59
+20-3,2020-14,Vega,Course player (HTML5),0,0,0
+20-3,2020-14,DataTycoons,Analytics,16,16,100
+20-3,2020-14,Mavericks,LCEC,18,18,100
+20-3,2020-14,Titans,Certification Manager,29,24,83
+20-3,2020-14,Avengers,Campaign Manager,21,21,100
+20-3,2020-13,Polaris,CAT Angular Migration,55,55,100
+20-3,2020-13,FiniteLoop,Catalyst Portal,48,48,100
+20-3,2020-13,Performix,Console,41,41,100
+20-3,2020-13,Vega,Course player (HTML5),25,17,68
+20-3,2020-13,DataTycoons,Analytics,16,16,100
+20-3,2020-13,Mavericks,LCEC,13,13,100
+20-3,2020-13,Titans,Certification Manager,45,45,100
+20-3,2020-13,Avengers,Campaign Manager,22,22,100
+20-2,2020-11,Polaris,CAT Angular Migration,56,48,86
+20-2,2020-11,FiniteLoop,Catalyst Portal,54,54,100
+20-2,2020-11,Gladiators,Catalyst Communication,23,23,100
+20-2,2020-11,Performix,Console,45,29,64
+20-2,2020-11,Vega,Course player (HTML5),37,29,78
+20-2,2020-11,DataTycoons,Analytics,25,25,100
+20-2,2020-11,Mavericks,LCEC,24,24,100
+20-2,2020-11,Titans,Certification Manager,33,28,85
+20-2,2020-11,Avengers,Campaign Manager,16,16,100
+20-2,2020-10,Polaris,CAT Angular Migration,57,49,86
+20-2,2020-10,FiniteLoop,Catalyst Portal,47,47,100
+20-2,2020-10,Gladiators,Catalyst Communication,25,20,80
+20-2,2020-10,Performix,Console,56,56,100
+20-2,2020-10,Vega,Course player (HTML5),32,32,100
+20-2,2020-10,DataTycoons,Analytics,24,11,46
+20-2,2020-10,Mavericks,LCEC,24,24,100
+20-2,2020-10,Titans,Certification Manager,37,37,100
+20-2,2020-10,Avengers,Campaign Manager,20,20,100
+20-2,2020-09,Polaris,CAT Angular Migration,50,50,100
+20-2,2020-09,FiniteLoop,Catalyst Portal,52,47,90
+20-2,2020-09,Gladiators,Catalyst Communication,26,26,100
+20-2,2020-09,Performix,Console,47,34,72
+20-2,2020-09,Vega,Course player (HTML5),31,31,100
+20-2,2020-09,DataTycoons,Analytics,19,11,58
+20-2,2020-09,Mavericks,LCEC,30,22,73
+20-2,2020-09,Titans,Certification Manager,36,31,86
+20-2,2020-09,Avengers,Campaign Manager,18,15,83
+20-2,2020-08,Polaris,CAT Angular Migration,51,51,100
+20-2,2020-08,FiniteLoop,Catalyst Portal,55,42,76
+20-2,2020-08,Gladiators,Catalyst Communication,23,23,100
+20-2,2020-08,Performix,Console,42,29,69
+20-2,2020-08,Vega,Course player (HTML5),27,19,70
+20-2,2020-08,DataTycoons,Analytics,29,21,72
+20-2,2020-08,Mavericks,LCEC,22,19,86
+20-2,2020-08,Titans,Certification Manager,32,24,75
+20-2,2020-08,Avengers,Campaign Manager,18,18,100
+20-2,2020-07,Polaris,CAT Angular Migration,51,51,100
+20-2,2020-07,FiniteLoop,Catalyst Portal,50,37,74
+20-2,2020-07,Gladiators,Catalyst Communication,28,28,100
+20-2,2020-07,Performix,Console,42,29,69
+20-2,2020-07,Vega,Course player (HTML5),27,27,100
+20-2,2020-07,DataTycoons,Analytics,21,21,100
+20-2,2020-07,Mavericks,LCEC,21,21,100
+20-2,2020-07,Titans,Certification Manager,32,32,100
+20-2,2020-07,Avengers,Campaign Manager,18,18,100
+20-1,2020-05,Polaris,CAT Angular Migration,46,35,76
+20-1,2020-05,FiniteLoop,Catalyst Portal,58,58,100
+20-1,2020-05,Gladiators,Catalyst Communication,24,24,100
+20-1,2020-05,Performix,Console,55,42,76
+20-1,2020-05,Vega,Course player (HTML5),36,36,100
+20-1,2020-05,DataTycoons,Analytics,37,11,30
+20-1,2020-05,Mavericks,LCEC,17,7,41
+20-1,2020-05,Titans,Certification Manager,33,33,100
+20-1,2020-05,Avengers,Campaign Manager,18,13,72
+20-1,2020-04,Polaris,CAT Angular Migration,60,52,87
+20-1,2020-04,FiniteLoop,Catalyst Portal,48,48,100
+20-1,2020-04,Gladiators,Catalyst Communication,26,26,100
+20-1,2020-04,Performix,Console,52,44,85
+20-1,2020-04,Vega,Course player (HTML5),19,19,100
+20-1,2020-04,DataTycoons,Analytics,37,37,100
+20-1,2020-04,Mavericks,LCEC,18,18,100
+20-1,2020-04,Titans,Certification Manager,49,49,100
+20-1,2020-04,Avengers,Campaign Manager,26,21,81
+20-1,2020-03,Polaris,CAT Angular Migration,53,40,75
+20-1,2020-03,FiniteLoop,Catalyst Portal,38,33,87
+20-1,2020-03,Gladiators,Catalyst Communication,26,21,81
+20-1,2020-03,Performix,Console,34,21,62
+20-1,2020-03,Vega,Course player (HTML5),21,16,76
+20-1,2020-03,DataTycoons,Analytics,28,20,71
+20-1,2020-03,Mavericks,LCEC,21,21,100
+20-1,2020-03,Titans,Certification Manager,37,24,65
+20-1,2020-03,Avengers,Campaign Manager,26,8,31
+20-1,2020-02,Polaris,CAT Angular Migration,74,74,100
+20-1,2020-02,FiniteLoop,Catalyst Portal,33,33,100
+20-1,2020-02,Gladiators,Catalyst Communication,18,16,89
+20-1,2020-02,Performix,Console,53,45,85
+20-1,2020-02,Vega,Course player (HTML5),28,28,100
+20-1,2020-02,DataTycoons,Analytics,45,45,100
+20-1,2020-02,Mavericks,LCEC,20,20,100
+20-1,2020-02,Titans,Certification Manager,47,34,72
+20-1,2020-02,Avengers,Campaign Manager,21,13,62
+20-1,2020-01,Polaris,CAT Angular Migration,54,41,76
+20-1,2020-01,FiniteLoop,Catalyst Portal,75,62,83
+20-1,2020-01,Gladiators,Catalyst Communication,16,16,100
+20-1,2020-01,Performix,Console,58,18,31
+20-1,2020-01,Vega,Course player (HTML5),25,25,100
+20-1,2020-01,DataTycoons,Analytics,53,40,75
+20-1,2020-01,Mavericks,LCEC,11,8,73
+20-1,2020-01,Titans,Certification Manager,45,37,82
+20-1,2020-01,Avengers,Campaign Manager,26,21,81
+19-4,2019-24,Polaris,CAT Angular Migration,44,39,89
+19-4,2019-24,FiniteLoop,Catalyst Portal,63,29,46
+19-4,2019-24,Gladiators,Catalyst Communication,24,19,79
+19-4,2019-24,Performix,Console,42,21,50
+19-4,2019-24,Vega,Course player (HTML5),0,0,0
+19-4,2019-24,DataTycoons,Analytics,48,48,100
+19-4,2019-24,Mavericks,LCEC,16,16,100
+19-4,2019-24,Titans,Certification Manager,45,37,82
+19-4,2019-24,Avengers,Campaign Manager,16,16,100
+19-4,2019-23,Polaris,CAT Angular Migration,52,52,100
+19-4,2019-23,FiniteLoop,Catalyst Portal,61,61,100
+19-4,2019-23,Gladiators,Catalyst Communication,20,12,60
+19-4,2019-23,Performix,Console,29,29,100
+19-4,2019-23,Vega,Course player (HTML5),0,0,0
+19-4,2019-23,DataTycoons,Analytics,50,34,68
+19-4,2019-23,Mavericks,LCEC,20,20,100
+19-4,2019-23,Titans,Certification Manager,41,41,100
+19-4,2019-23,Avengers,Campaign Manager,16,16,100
+19-4,2019-22,Polaris,CAT Angular Migration,31,31,100
+19-4,2019-22,FiniteLoop,Catalyst Portal,45,32,71
+19-4,2019-22,Gladiators,Catalyst Communication,20,20,100
+19-4,2019-22,Performix,Console,41,41,100
+19-4,2019-22,Vega,Course player (HTML5),11,11,100
+19-4,2019-22,DataTycoons,Analytics,34,34,100
+19-4,2019-22,Mavericks,LCEC,12,12,100
+19-4,2019-22,Titans,Certification Manager,26,18,69
+19-4,2019-22,Avengers,Campaign Manager,13,13,100
+19-4,2019-21,Polaris,CAT Angular Migration,47,47,100
+19-4,2019-21,FiniteLoop,Catalyst Portal,50,34,68
+19-4,2019-21,Gladiators,Catalyst Communication,24,16,67
+19-4,2019-21,Performix,Console,47,34,72
+19-4,2019-21,Vega,Course player (HTML5),19,19,100
+19-4,2019-21,DataTycoons,Analytics,37,21,57
+19-4,2019-21,Mavericks,LCEC,19,19,100
+19-4,2019-21,Titans,Certification Manager,41,41,100
+19-4,2019-21,Avengers,Campaign Manager,16,16,100
+19-4,2019-20,Polaris,CAT Angular Migration,43,43,100
+19-4,2019-20,FiniteLoop,Catalyst Portal,62,41,66
+19-4,2019-20,Gladiators,Catalyst Communication,19,11,58
+19-4,2019-20,Performix,Console,44,44,100
+19-4,2019-20,Vega,Course player (HTML5),15,15,100
+19-4,2019-20,DataTycoons,Analytics,29,13,45
+19-4,2019-20,Mavericks,LCEC,16,16,100
+19-4,2019-20,Titans,Certification Manager,42,29,69
+19-4,2019-20,Avengers,Campaign Manager,17,17,100

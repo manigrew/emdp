@@ -1,0 +1,294 @@
+---
+title: "QualityAlloys"
+author: "Manish Grewal"
+date: "26/07/2020"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, fig.width = 10, fig.height = 6.5)
+```
+
+## Executive Summary
+
+### Executive summary description here
+
+## Load libraries
+```{r loadlibs, warning=FALSE, message=FALSE}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+
+```
+
+## Set working directory
+```{r setwd}
+setwd("C:/Users/manish.grewal/emdp/R/QualityAlloys")
+```
+
+## Load the dataset
+
+```{r}
+daily_visits <- read_excel("CU46-XLS-ENG.xls", sheet = "Daily Visits", skip = 4)
+
+# Read the main worksheets from xls workbook  
+
+weekly_visits <- read_excel("CU46-XLS-ENG.xls", sheet = "Weekly Visits", skip = 4)
+financials <- read_excel("CU46-XLS-ENG.xls", sheet = "Financials", skip = 4)
+lbs_sold <- read_excel("CU46-XLS-ENG.xls", sheet = "Lbs. Sold", skip = 4)
+
+# and remove non alphabet characters from column headers (names)
+
+names(weekly_visits) <- gsub("[^a-zA-Z]+", "", names(weekly_visits))
+names(financials) <- gsub("[^a-zA-Z]+", "", names(financials))
+names(lbs_sold) <- gsub("[^a-zA-Z]+", "", names(lbs_sold))
+
+# gather columns into weekly_data
+weekly_data <- data.frame(
+  Week = weekly_visits$Week, 
+  UniqueVisits = weekly_visits$UniqueVisits, 
+  Revenue = financials$Revenue, 
+  Profit = financials$Profit, 
+  LbsSold = financials$LbsSold)
+
+# gather columns into weekly_data
+weekly_data <- data.frame(
+  Week = weekly_visits$Week, 
+  Visits = weekly_visits$Visits,
+  UniqueVisits = weekly_visits$UniqueVisits, 
+  Revenue = financials$Revenue, 
+  Profit = financials$Profit, 
+  LbsSold = financials$LbsSold)
+
+# convert Week to ordered factored 
+weekly_data$Week <- factor(weekly_data$Week, levels = weekly_data$Week)
+
+idx_init <- which(levels(weekly_data$Week) == "Aug 24 - Aug 30")
+idx_pre  <- which(levels(weekly_data$Week) == "Jan 18 - Jan 24")
+idx_prom <- which(levels(weekly_data$Week) == "May 17 - May 23")
+idx_post <- nrow(weekly_data)
+weekly_data$Period <- c(rep("Initial Period", idx_init),
+                        rep("Pre-promotion",  idx_pre - idx_init),
+                        rep("Promotion",      idx_prom - idx_pre),
+                        rep("Post-promotion", idx_post - idx_prom))
+
+
+weekly_data$period <- factor(weekly_data$Period, levels = c("Initial Period", "Pre-promotion", "Promotion", "Post-promotion"), ordered = TRUE)
+
+```
+
+
+## 1. Column Charts 
+### Initialize the common plot data
+```{r}
+p <- ggplot(weekly_data, aes(x = Week)) +
+  scale_x_discrete(breaks = weekly_visits$Week[seq(1, nrow(weekly_visits), 2)]) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+### a. unique visits over time
+```{r}
+p +   geom_bar(aes(y = UniqueVisits), stat = "identity", fill = "blue", color = "black")
+```
+
+### b. revenue over time,
+```{r}
+p +   geom_bar(aes(y = Revenue), stat = "identity", fill = "blue", color = "black")
+```
+
+### c. profit over time
+
+```{r}
+p +   geom_bar(aes(y = Profit), stat = "identity", fill = "blue", color = "black")
+```
+
+### d. pounds sold over time.
+
+```{r}
+p +   geom_bar(aes(y = LbsSold), stat = "identity", fill = "blue", color = "black")
+```
+
+## 2. Summary by period
+
+```{r}
+
+by_period <- group_by(weekly_data, Period)
+
+summ <- by_period %>% 
+  select_if(is.numeric) %>% 
+  summarise(across(everything(), list(mean, median, sd, min, max) 
+                   #, .names = c("{col}.{fn}")
+                   ))
+
+summ_init <- as.data.frame(
+  matrix(as.numeric(summ[1, 2:26]), nrow = 5), 
+  row.names = c('mean', 'median', 'std. dev.', 'minimum', 'maximum'))
+names(summ_init) <- names(by_period)[2:6]
+
+summ_pre  <- as.data.frame(
+  matrix(as.numeric(summ[3, 2:26]), nrow = 5),
+  row.names = c('mean', 'median', 'std. dev.', 'minimum', 'maximum'))
+names(summ_pre) <- names(by_period)[2:6]
+
+summ_prom <- as.data.frame(
+  matrix(as.numeric(summ[4, 2:26]), nrow = 5),
+  row.names = c('mean', 'median', 'std. dev.', 'minimum', 'maximum'))
+names(summ_prom) <- names(by_period)[2:6]
+
+summ_post <- as.data.frame(
+  matrix(as.numeric(summ[2, 2:26]), nrow = 5),
+  row.names = c('mean', 'median', 'std. dev.', 'minimum', 'maximum'))
+names(summ_post) <- names(by_period)[2:6]
+
+```
+
+
+### a. Summary table of Initial Period
+```{r}
+knitr::kable(summ_init, caption = "VISIT AND FINANCIAL SUMMARY MEASURES - INITIAL PERIOD")
+
+
+```
+
+### b. Summary table of Pre-promotion Period
+```{r}
+knitr::kable(summ_pre, caption = "VISIT AND FINANCIAL SUMMARY MEASURES - PRE PROMOTION PERIOD")
+
+
+```
+
+### c. Summary table of Promotion Period
+```{r}
+knitr::kable(summ_prom, caption = "VISIT AND FINANCIAL SUMMARY MEASURES - PROMOTION PERIOD")
+
+
+```
+
+### d. Summary table of Post-promotion Period
+```{r}
+knitr::kable(summ_post, caption = "VISIT AND FINANCIAL SUMMARY MEASURES - POST PROMOTION PERIOD")
+
+```
+
+## 3. Column chart of the means over the four periods
+
+```{r}
+p <- ggplot(summ, aes(x = Period))
+```
+
+### a. Mean Visits by Period
+```{r}
+p + geom_col(aes(y = Visits_1))
+```
+
+### b. Mean Unique Visits by Period
+```{r}
+# r, fig.show="hold", fig.width=3
+p + geom_col(aes(y = UniqueVisits_1))
+```
+
+### c. Mean Revenue by Period
+```{r}
+p + geom_col(aes(y = Revenue_1))
+```
+
+### d. Mean Profit by Period
+```{r}
+p + geom_col(aes(y = Profit_1))
+```
+
+### e. Mean Lbs. Sold by Period
+```{r}
+p + geom_col(aes(y = LbsSold_1), stat = "identity")
+```
+
+## 4. Summary of findings thus far
+
+#### Average visits and average unique visits have shown a marked increase in promotion period. However, profit, revenue and lbs. sold show a steady declining trend over the four periods. This suggests that the website promotion did not have a positive effect on financials.
+
+## 5. Revenue and Lbs. Sold
+
+### a. Scatter plot Revenue and Lbs. Sold
+
+```{r}
+ggplot(weekly_data, aes(LbsSold, Revenue)) +
+  geom_point() +
+  geom_smooth()
+```
+
+### b. Coefficient of Correlation
+
+```{r}
+
+cor_coef <- cor(weekly_data$LbsSold, weekly_data$Revenue, method = "pearson")
+cor_coef
+```
+
+## 6. Revenue and Visits
+
+### a. Scatter plot Revenue and Visits
+
+```{r}
+ggplot(weekly_data, aes(Visits, Revenue)) +
+  geom_point() +
+  geom_smooth()
+
+```
+
+## 7. Summary of results
+The scatterplot mirrors the earlier observations from Q4. Revenue does not increase or decrease with visits
+
+## 8. Modeling data
+
+### a. Summary of Lbs. Sold data per week from January 3, 2005, through the week of July 19, 2010.
+
+```{r}
+
+lbs_sold_mean <- mean(lbs_sold$LbsSold)
+lbs_sold_sd   <- sd(lbs_sold$LbsSold)
+paste("Mean:",      mean(lbs_sold$LbsSold))
+paste("Median:",    median(lbs_sold$LbsSold))
+paste("Std. Dev.:", sd(lbs_sold$LbsSold))
+paste("Minimum:",   min(lbs_sold$LbsSold))
+paste("Maximum:",   max(lbs_sold$LbsSold))
+
+```
+
+### b. Histogram of the pounds of material sold data.
+
+```{r}
+ggplot(lbs_sold, aes(LbsSold), color = "blue") +
+  geom_histogram()
+```
+
+### c. Histogram appears bell shaped with few outliers on the right side. Also, mean is greater than median, so the data is right skewed.
+
+### d. Empirical rule
+
+```{r}
+emp_rule <- data.frame(
+  "Interval" = c("mean ?? 1 std. dev.", "mean ?? 2 std. dev.", "mean ?? 3 std. dev. 99%"),
+  "TheoreticalPctOfData" = c(68, 95, 99)
+  )
+
+emp_rule$TheoreticalNoOfObs <- emp_rule$TheoreticalPctOfData * nrow(lbs_sold) / 100
+emp_rule$ActualNoOfObs <- c(0)
+emp_rule$ActualNoOfObs <- c(
+  nrow(filter(lbs_sold, 
+              LbsSold > lbs_sold_mean - lbs_sold_sd, 
+              LbsSold < lbs_sold_mean + lbs_sold_sd)),
+  nrow(filter(lbs_sold, 
+              LbsSold > lbs_sold_mean - 2*lbs_sold_sd, 
+              LbsSold < lbs_sold_mean + 2*lbs_sold_sd)),
+  nrow(filter(lbs_sold, 
+              LbsSold > lbs_sold_mean - 3*lbs_sold_sd, 
+              LbsSold < lbs_sold_mean + 3*lbs_sold_sd)))
+knir::kable(emp_rule)
+```
+
+
+
+
+### e. 

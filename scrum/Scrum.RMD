@@ -1,0 +1,124 @@
+---
+title: "Scrum"
+author: "Manish Grewal"
+date: "30/08/2020"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, output = FALSE, message = FALSE, warning = FALSE)
+```
+
+# Measuring SCRUM at XYZ
+
+The technology department with a strength of 75 IT professionals at XYZ company follows SCRUM since the last 3* years as of July 2020. The department is organized into 9 teams who work on various technology applications. Each team has a Scrummaster(SM), a Business Analyst(BA), developers and testers. Scrummasters and BAs are typically part of more than one team.
+
+All the SCRUM teams run a 2 week sprint that starts on Wednesday with Sprint Planning and ends on Tuesday with a Sprint Review. The teams work on User Stories and play a planning poker dring sprint planning to decide the story points for each. The story points follow a fibonacci scale of 1, 2, 3, 5, 8, 13 and in rare cases 21. The higher the complexity and effort, higher the points. 
+
+During the Sprint Planning, the teams assign points to the stories and commit to a few stories out of a prioritized list that they are confident of completing within the Sprint. Each story has a checklist of things to be completed to make it shippable. This is called  the Definition of Done(DoD) that needs to be met to complete the story. The incomplete stories are spilled over to the next sprint.
+
+The total number of story points committed by each team are compared with the total number of story points delivered to calculate the delivery percentage. The average delivery percentage is considered one of the indicators of a SCRUM teams performance.
+
+```{r load_libs}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+
+```{r load_dataset}
+setwd("C:/Users/manish.grewal/emdp/R/scrum")
+dat <- read.csv("Scrum.csv")
+
+dat$Sprint <- sub("^20", "", dat$Sprint) # 2020-01 to 20-01
+#dat$Sprint
+dat <- dat[, !(names(dat) %in% c("Project"))]
+head(dat, 15)
+```
+
+```{r all_teams, fig.width=12, fig.height=12}
+#######################################################################
+# by sprint by team + PI + PI avg delivered - take 2
+#######################################################################
+
+by_pi_team = group_by(dat, PI, Team)
+summ <- summarise(by_pi_team, mDelivered = mean(Delivered), mDelpct = mean(Delpct))
+dat <- left_join(dat, summ, by = c("PI", "Team"))
+
+my_colors = c("Delpct" = "Green", "Committed" = "Blue", "Delivered" = "Red")
+my_linetype = c("Avg. Delpct" = "dashed", "Avg. Delivered" = "longdash")
+outdir = "storypoints-charts"
+
+ggplot(dat) +
+  geom_line(aes(Sprint, Delivered, group = Team, color="Delivered")) + 
+  geom_point(aes(Sprint, Delivered, color="Delivered")) +
+  geom_line(aes(Sprint, Committed, group = Team, color="Committed")) +
+  geom_point(aes(Sprint, Committed, color="Committed")) +
+  geom_line(aes(Sprint, Delpct, group = Team, color="Delpct")) +
+  geom_point(aes(Sprint, Delpct, color="Delpct")) +
+  scale_color_manual(name = "", values = my_colors) + # legend
+
+  # PI background
+  geom_rect(xmin = 1, ymin = 0, xmax = 5.5, ymax = 100, fill = "#00000001") +
+  #geom_rect(xmin = 5.5, ymin = 0, xmax = 10.5, ymax = 100, fill = "#33cccc01") +
+  geom_rect(xmin = 10.5, ymin = 0, xmax = 15.5, ymax = 100, fill = "#00000001") +
+  
+  geom_line(aes(Sprint, mDelivered, group = Team, linetype = "Avg. Delivered"), color = "Black", size = 0.5) + # Average by PI
+  geom_line(aes(Sprint, mDelpct, group = Team, linetype = "Avg. Delpct"), color = "Black", size = 0.5) + # Average by PI
+  scale_linetype_manual(name = "", values = my_linetype) + # legend
+  
+  facet_wrap(~Team) + 
+  theme_bw() +
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylab("Committed, Delivered, Delpct(%)")
+
+
+#ggsave("all-teams.png", path = outdir)
+```
+
+XYZ also follows Scaled Agile Framework(SAFE) which is useful for coordination of tasks that need to be done by multiple teams and in giving visibility to the teams on what they are going to work on in the next 5 sprints. The year is divided into 4 Program Increments(PIs). Each PI starts with a spike sprint in which teams plan their next 5 sprints. The product owner and BA has prepared a prioritized list of items and any deadlines for particular stories. 
+
+
+```{r teams, fig.align="center"}
+#######################################################################
+# Individual teams
+#######################################################################
+
+for (team in unique(dat$Team)) {
+  curr <- filter(dat, Team == team)
+  p <- ggplot(curr) +
+    geom_line(aes(Sprint, Delivered, group = Team, color="Delivered")) + 
+    geom_point(aes(Sprint, Delivered, color="Delivered")) +
+    geom_line(aes(Sprint, Committed, group = Team, color="Committed")) +
+    geom_point(aes(Sprint, Committed, color="Committed")) +
+    geom_line(aes(Sprint, Delpct, group = Team, color="Delpct")) +
+    geom_point(aes(Sprint, Delpct, color="Delpct")) +
+    scale_color_manual(name = "", values = my_colors) + # legend
+    
+    # PI background
+    geom_rect(xmin = 1, ymin = 0, xmax = 5.5, ymax = 100, fill = "#00000001") +
+    #geom_rect(xmin = 5.5, ymin = 0, xmax = 10.5, ymax = 100, fill = "#33cccc01") +
+    geom_rect(xmin = 10.5, ymin = 0, xmax = 15.5, ymax = 100, fill = "#00000001") +
+    
+    geom_line(aes(Sprint, mDelivered, group = Team, linetype = "Avg. Delivered"), color = "Black", size = 0.5) + # Average by PI
+    geom_line(aes(Sprint, mDelpct, group = Team, linetype = "Avg. Delpct"), color = "Black", size = 0.5) + # Average by PI
+    scale_linetype_manual(name = "", values = my_linetype) + # legend
+    
+    #facet_wrap(~Team) + 
+    theme_bw() +
+    theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+    ggtitle(team) +
+    scale_y_continuous(breaks = seq(0, 100, 10)) +
+    theme(axis.text.x = element_text(angle = 90)) +
+    ylab("Committed, Delivered, Delpct(%)")
+
+  #ggsave(paste0(team, ".png"), path = outdir)
+  print(p)
+}
+
+```
+

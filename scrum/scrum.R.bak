@@ -1,0 +1,403 @@
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+setwd("C:/Users/manish.grewal/emdp/R/scrum")
+dat <- read.csv("Scrum.csv")
+
+dat$Sprint <- sub("^20", "", dat$Sprint) # 2020-01 to 20-01
+dat$Sprint
+str(dat)
+
+dat <- dat %>% 
+  filter(Team != "Gladiators", PI != "19-4")
+#######################################################################
+# by sprint by team
+#######################################################################
+
+ggplot(dat) +
+  geom_line(aes(Sprint, Delivered, group = Team, color="Blue")) + 
+  geom_point(aes(Sprint, Delivered, color="Blue")) +
+  geom_line(aes(Sprint, Committed, group = Team, color="Red")) +
+  geom_point(aes(Sprint, Committed, color="Red")) +
+  geom_line(aes(Sprint, Delpct, group = Team, color="Green")) +
+  geom_point(aes(Sprint, Delpct, color="Green")) +
+  facet_wrap(~Team) + 
+  #geom_ma(aes(Sprint, Delivered, group = Team, color = "Yellow"), n = 8) +
+  #theme_bw() +
+  scale_y_continuous(breaks = seq(0, 100, 10)) 
+
+#######################################################################
+# by sprint by team + PI
+#######################################################################
+
+ggplot(dat) +
+  geom_line(aes(Sprint, Delivered, group = Team, color="Blue")) + 
+  geom_point(aes(Sprint, Delivered, color="Blue")) +
+  geom_line(aes(Sprint, Committed, group = Team, color="Red")) +
+  geom_point(aes(Sprint, Committed, color="Red")) +
+  geom_line(aes(Sprint, Delpct, group = Team, color="Green")) +
+  geom_point(aes(Sprint, Delpct, color="Green")) +
+  geom_rect(xmin = 1, ymin = 0, xmax = 5.5, ymax = 100, fill = "#ab000001") +
+  geom_rect(xmin = 5.5, ymin = 0, xmax = 10.5, ymax = 100, fill = "#00ab0001") +
+  geom_rect(xmin = 10.5, ymin = 0, xmax = 15, ymax = 100, fill = "#0000ab01") +
+  facet_wrap(~Team) + 
+  #geom_ma(aes(Sprint, Delivered, group = Team, color = "Yellow"), n = 8) +
+  theme_bw() +
+  scale_y_continuous(breaks = seq(0, 100, 10)) 
+
+
+#######################################################################
+# by sprint by team + PI + avg
+#######################################################################
+
+by_pi_team = group_by(dat, PI, Team)
+summ <- summarise(by_pi_team, mDelivered = mean(Delivered))
+dat <- left_join(dat, summ, by = c("PI", "Team"))
+
+# ugly hack to get legend for Averages line
+dat$dashed <- rep("Average")
+str(dat)
+dat
+
+ggplot(dat) +
+  geom_line(aes(Sprint, Delivered, group = Team, color="Blue")) + 
+  geom_point(aes(Sprint, Delivered, color="Blue")) +
+  geom_line(aes(Sprint, Committed, group = Team, color="Red")) +
+  geom_point(aes(Sprint, Committed, color="Red")) +
+  geom_line(aes(Sprint, Delpct, group = Team, color="Green")) +
+  geom_point(aes(Sprint, Delpct, color="Green")) +
+  scale_color_discrete(name = "", labels = c("Delivered", "Delpct", "Committed"), ) + # legend
+  
+  # PI background
+  geom_rect(xmin = 1, ymin = 0, xmax = 5.5, ymax = 100, fill = "#ab444401") +
+  geom_rect(xmin = 5.5, ymin = 0, xmax = 10.5, ymax = 100, fill = "#77ab7701") +
+  geom_rect(xmin = 10.5, ymin = 0, xmax = 15, ymax = 100, fill = "#4444ab01") +
+  
+  geom_line(aes(Sprint, mDelivered, group = Team, linetype = dashed), linetype = "dashed") + # Average by PI
+  scale_linetype_discrete(name = "") +
+  
+  facet_wrap(~Team) + 
+  theme_bw() +
+  scale_y_continuous(breaks = seq(0, 100, 10)) 
+
+
+#######################################################################
+# by sprint by team + PI + PI avg delivered - take 2
+#######################################################################
+
+by_pi_team = group_by(dat, PI, Team)
+summ <- summarise(by_pi_team, mDelivered = mean(Delivered), mDelpct = mean(Delpct))
+dat <- left_join(dat, summ, by = c("PI", "Team"))
+
+my_colors = c("Delpct" = "Green", "Committed" = "Blue", "Delivered" = "Red")
+my_linetype = c("Avg. Delpct" = "dashed", "Avg. Delivered" = "longdash")
+outdir = "storypoints-charts"
+
+ggplot(dat) +
+  geom_line(aes(Sprint, Delivered, group = Team, color="Delivered")) + 
+  geom_point(aes(Sprint, Delivered, color="Delivered")) +
+  geom_line(aes(Sprint, Committed, group = Team, color="Committed")) +
+  geom_point(aes(Sprint, Committed, color="Committed")) +
+  geom_line(aes(Sprint, Delpct, group = Team, color="Delpct")) +
+  geom_point(aes(Sprint, Delpct, color="Delpct")) +
+  scale_color_manual(name = "", values = my_colors) + # legend
+
+  # PI background
+  geom_rect(xmin = 1, ymin = 0, xmax = 5.5, ymax = 100, fill = "#00000001") +
+  #geom_rect(xmin = 5.5, ymin = 0, xmax = 10.5, ymax = 100, fill = "#33cccc01") +
+  geom_rect(xmin = 10.5, ymin = 0, xmax = 15.5, ymax = 100, fill = "#00000001") +
+  
+  geom_line(aes(Sprint, mDelivered, group = Team, linetype = "Avg. Delivered"), color = "Black", size = 0.5) + # Average by PI
+  geom_line(aes(Sprint, mDelpct, group = Team, linetype = "Avg. Delpct"), color = "Black", size = 0.5) + # Average by PI
+  scale_linetype_manual(name = "", values = my_linetype) + # legend
+  
+  facet_wrap(~Team) + 
+  theme_bw() +
+  theme(legend.position = "top") +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylab("Committed, Delivered, Delpct(%)")
+
+ggsave("all-teams.png", path = outdir)
+#######################################################################
+# Individual teams
+#######################################################################
+
+for (team in unique(dat$Team)) {
+  curr <- filter(dat, Team == team)
+  ggplot(curr) +
+    geom_line(aes(Sprint, Delivered, group = Team, color="Delivered")) + 
+    geom_point(aes(Sprint, Delivered, color="Delivered")) +
+    geom_line(aes(Sprint, Committed, group = Team, color="Committed")) +
+    geom_point(aes(Sprint, Committed, color="Committed")) +
+    geom_line(aes(Sprint, Delpct, group = Team, color="Delpct")) +
+    geom_point(aes(Sprint, Delpct, color="Delpct")) +
+    scale_color_manual(name = "", values = my_colors) + # legend
+    
+    # PI background
+    geom_rect(xmin = 1, ymin = 0, xmax = 5.5, ymax = 100, fill = "#00000001") +
+    #geom_rect(xmin = 5.5, ymin = 0, xmax = 10.5, ymax = 100, fill = "#33cccc01") +
+    geom_rect(xmin = 10.5, ymin = 0, xmax = 15.5, ymax = 100, fill = "#00000001") +
+    
+    geom_line(aes(Sprint, mDelivered, group = Team, linetype = "Avg. Delivered"), color = "Black", size = 0.5) + # Average by PI
+    geom_line(aes(Sprint, mDelpct, group = Team, linetype = "Avg. Delpct"), color = "Black", size = 0.5) + # Average by PI
+    scale_linetype_manual(name = "", values = my_linetype) + # legend
+    
+    #facet_wrap(~Team) + 
+    theme_bw() +
+    theme(legend.position = "top", plot.title = element_text(hjust = 0.5)) +
+    ggtitle(team) +
+    scale_y_continuous(breaks = seq(0, 100, 10))# +
+    #theme(axis.text.x = element_text(angle = 90)) 
+  
+  ggsave(paste0(team, ".png"), path = outdir)
+    #readline()
+}
+
+#######################################################################
+# JUNK?
+#######################################################################
+
+ggplot(dat, aes(Committed, Delivered, color = Team, size = 1)) +
+  geom_point(size = 1) +
+  geom_smooth(method = 'lm', alpha = 0.1, size = 1)
+
+
+
+by_team_pi <- group_by(dat, PI, Team)
+
+summ1 <- summarise(by_team_pi, 
+                   mDelpct = mean(Delpct), 
+                   mCommitted = mean(Committed), 
+                   mDelivered = mean(Delivered))
+str(summ1)
+
+ggplot(summ1) +
+  geom_bar(aes(PI, mDelpct), stat = "identity") +
+  facet_wrap(~Team) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme_bw() 
+  
+ggplot(summ1) +
+  geom_bar(aes(PI, mDelivered), stat = "identity") +
+  facet_wrap(~Team) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme_bw() 
+
+ggplot(summ1) +
+  geom_bar(aes(PI, mDelpct), stat = "identity", position = "dodge") +
+  geom_bar(aes(PI, mDelivered, , fill = mDelivered), stat = "identity", position = "dodge") +
+  facet_wrap(~Team) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme_bw() 
+
+ggplot(summ1) +
+  geom_line(aes(PI, mDelpct, group = Team), stat = "identity", position = "dodge") +
+  geom_line(aes(PI, mDelivered, group = Team), stat = "identity", position = "dodge") +
+  facet_wrap(~Team) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme_bw() 
+
+
+by_sprint <- group_by(dat, Sprint)
+#summ <- summarise(by_team)
+summ2 <- summarise(by_sprint, mDelpct = mean(Delpct), mCommitted = mean(Committed), mDelivered = mean(Delivered))
+str(summ2)
+summ2
+
+ggplot(summ2) +
+  geom_point(aes(Sprint, mDelivered), color = "blue") +
+  geom_smooth(aes(mCommitted, mDelivered)) 
+
++
+#  geom_point(aes(Sprint, mCommitted, group = Sprint), color = "red") 
+  
+ggplot(summ2) +
+  geom_bar(aes(Sprint, mDelpct), stat = "identity") +
+#  facet_wrap(~Team) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme_bw() 
+
+ggplot(summ2) +
+  geom_bar(aes(Sprint, mDelivered), stat = "identity") +
+#  facet_wrap(~Team) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme_bw() 
+
+ggplot(summ2) +
+  geom_bar(aes(Sprint, mDelpct), stat = "identity", position = "dodge") +
+  geom_bar(aes(Sprint, mDelivered, , fill = mDelivered), stat = "identity", position = "dodge") +
+#  facet_wrap(~Team) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme_bw() 
+
+
+
+ggplot(summ2, aes(mDelivered, mCommitted)) +
+  geom_line() +
+  #geom_point(aes(Sprint, )) +
+  #facet_wrap(~Team) +
+  #geom_smooth(method = 'lm') +
+  geom_smooth(method = 'loess') +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  theme_bw() 
+
+
+ggplot(dat) +
+  geom_point(aes(Delivered, Committed, group = Team, color = Team)) +
+  geom_smooth(aes(Delivered, Committed, group = Team, color = Team), method = 'loess') +
+  facet_wrap(~Sprint)
+  theme_bw() 
+
+
+esquisse::esquisser(summ2)
+
+# by sprint by team + PI
+ggplot(summ) +
+  geom_line(aes(Sprint, Delivered, group = Team, color="Blue")) + 
+  geom_point(aes(Sprint, Delivered, color="Blue")) +
+  #geom_ma(aes(Sprint, Delivered, group = Team, color = "Yellow"), n = 8) +
+  #theme_bw() +
+  scale_y_continuous(breaks = seq(0, 100, 10)) 
+
+str(dat)
+ggplot(dat) +
+  geom_col(aes(Sprint, Delpct/9), width = 1) +
+  scale_y_continuous(breaks = seq(0, 100, 10))
+
+summary(dat)
+
+
+
+ggplot(dat) +
+  geom_bar(aes(Sprint, Delpct), color = Team) +
+  facet_wrap(~ Team) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  coord_flip()
+
+ggplot(dat) +
+  geom_col(aes(Sprint, Delivered, group = sum(Delivered)/15)) +
+  facet_wrap(~ Sprint) +
+  scale_y_continuous(breaks = seq(0, 100, 10))
+  
+
+p
+
+
+by_group = group_by(dat, Sprint)
+
+str(by_group)
+summ <- summarise(by_group, mean(Delpct), mean(Committed), mean(Delivered))
+summ
+names(summ) = c("Sprint", "Delpct", "Committed", "Delivered")
+summ$Dates <- (seq.Date(as.Date("2020-03-25"), by="10 day", length.out=45))[9:1]
+
+esquisse::esquisser('summ')
+
+# Delpct by sprint
+ggplot(summ) +
+  geom_bar(aes(Sprint, Delpct), stat = "identity", fill = "Blue") +
+  geom_point(aes(Sprint, Delpct)) +
+  scale_y_continuous(breaks = seq(0, 100, 10))
+
+dat
+ggplot(dat) +
+  geom_bar(aes(Sprint, Delpct), stat = "identity", fill = ) +
+  geom_point(aes(Sprint, Delpct))
+
+
+
+###############################################################
+# try - stacked data
+###############################################################
+
+dat$Dates <- as.Date(dat$Dates, '%d-%m-%Y')
+len <- dim(dat)[1]
+dat$DatesSer <- (seq.Date(as.Date("2020-06-01"), by="2 day", length.out=len))[len:1]
+
+View(dat)
+
+ggplot(dat) +  geom_jitter(aes(Committed, Delivered, color = Team))
+
+stacked1 <- with(dat,
+                data.frame(value  = c(Committed, Delivered, Delpct),
+                           var    = factor(c(rep(c("Committed"), len),
+                                             rep(c("Delivered"), len),
+                                             rep(c("Delpct"), len))),
+                           Sprint = rep(Sprint, 3),
+                           Dates  = rep(Dates, 3),
+                           DatesSer  = rep(DatesSer, 3),
+                           Team   = rep(Team, 3)))
+
+
+
+
+p <- ggplot(stacked1, aes(x = DatesSer, y = value, color=var))
+p + geom_line(aes()) + 
+  facet_wrap(~Team) + 
+  theme_bw() 
+
+
+ggplot(filter(stacked1, Team == "Avengers"), aes(x=Dates, y= value)) + geom_line(aes(color=var))
+
+ggplot(filter(stacked1, Team == "Mavericks"), aes(x=Dates, y= value)) + geom_line(aes(color=var))
+
+###############################################################
+# try
+###############################################################
+dat1 <- dat
+dat1$Sprint <- sub("^20", "", dat$Sprint)
+dat1$Sprint
+
+ma <- mean()
+ggplot(dat1) +
+  geom_line(aes(Sprint, Delivered, group = Team, color="Blue")) + 
+  geom_point(aes(Sprint, Delivered, color="Blue")) +
+  geom_line(aes(Sprint, Committed, group = Team, color="Red")) +
+  geom_point(aes(Sprint, Committed, color="Red")) +
+  geom_line(aes(Sprint, Delpct, group = Team, color="Green")) +
+  geom_point(aes(Sprint, Delpct, color="Green")) +
+  
+  #geom_ma(aes(Sprint, Delivered, group = Team, color = "Yellow"), n = 8) +
+  
+  facet_wrap(~Team) + 
+  theme_bw() +
+  scale_y_continuous(breaks = seq(0, 100, 10))
+
+dat$rollmean <- rollmean(dat$Delivered, 8, na.pad = TRUE)
+str(dat)
+View(dat)
+filter(dat, Sprint == '20-11')
+
+library(dplyr)
+summ <-  group_by(dat, Team) %>%
+  summarize(mean(Committed), mean(Delivered), mean(Delpct))
+
+summ
+names(summ) = c("Delpct", "Committed", "Delivered", "Team")
+summ$Dates <- (seq.Date(as.Date("2020-03-25"), by="10 day", length.out=45))[9:1]
+
+ggplot(summ, aes(Delpct, Committed)) + geom_point(aes(color = Team))
+
+stacked2 <- with(summ,
+                 data.frame(value  = c(Committed, Delivered, Delpct),
+                            var    = factor(c(rep(c("Committed"), 9),
+                                              rep(c("Delivered"), 9),
+                                              rep(c("Delpct"), 9))),
+                            Dates  = rep(Dates, 3),
+                            Team   = rep(Team, 3)))
+
+stacked2
+
+p <- ggplot(stacked2, aes(x = Dates, y = value, color=var,))
+p + geom_line() 
+
+ggplot(summ, aes(Team, Delpct)) + geom_point()
+
+summ
+ggplot(summ, aes(Dates, Delpct)) + 
+    geom_line(aes(Committed)) + geom_line(aes(Delivered)) +
+  facet_wrap(~Team)
+
+vignette("ggplot2-specs")

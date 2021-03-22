@@ -1,0 +1,573 @@
+---
+title: "RocketFuel"
+author: "Manish Grewal"
+date: "17/07/2020"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message = FALSE, warning = FALSE, fig.width = 6, fig.height = 4)
+```
+
+```{r load_libraries, output=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r load_dataset}
+setwd("C:/Users/manish.grewal/emdp/R/RocketFuel")
+dat <- read.csv("RocketFuel.csv")
+
+## Convert to factors
+dat$ftest <- factor(dat$test, labels = c("control", "test"))
+dat$fconverted <- factor(dat$converted, labels = c("not-converted", "converted"))
+```
+
+## 1. Was the advertising campaign effective? Did additional consumers convert as a result of the ad campaign?
+
+#### Number of users:  
+```{r q1_a}
+table1 <- table(dat$fconverted, dat$ftest)
+knitr::kable(table1)
+```
+
+#### Proportion of users as percent:  
+```{r q1_b}
+#margin.table(table1, margin = 1)
+percent_users <- prop.table(table1, margin = 2) * 100
+knitr::kable(percent_users)
+lift <- percent_users[4] - percent_users[2]
+```
+
+#### Mosaicplot
+
+```{r q1_d}
+mosaicplot(table1, main = "Conversions in control and test groups", xlab = "converted", ylab = "group", col = c("#f8766d", "#00bfc4"))
+
+```
+
+The conversion rate of exposed group `r round(percent_users[4], 3)`% is greater than the conversion rate for control group `r round(percent_users[2], 3)`%. 
+
+`r round(percent_users[2], 3)`% of users in the test group would have converted even without the ad impressions. 
+
+`r round(percent_users[4], 3)`% - `r round(percent_users[2], 3)`% = `r round(lift,3)`% additional users in the test group have converted.
+
+However, to be able to say that additional users converted as a result of the ad campaign, we need to check if the gain in conversion rate was statistically significant.  
+
+### t-test to check bias:
+```{r qa_c, echo=TRUE}
+t.test(dat$tot_impr ~dat$ftest)
+```
+
+As the mean of total impressions for the control and test groups are almost the same, and the t-value is reported as insignificant, we do not detect a bias in the total impressions for the control group and test group.
+
+Yes, additional consumers converted as a result of the ad campaign.
+
+```{r q1_e}
+
+control <- filter(dat, test == 0)
+num_control <- nrow(control)
+control_conv <- filter(dat, test == 0, converted == 1)
+num_control_conv <- nrow(control_conv)
+exposed <- filter(dat, test == 1)
+num_exposed <- nrow(exposed)
+exposed_conv <- filter(dat, test == 1, converted == 1)
+num_exposed_conv <- nrow(exposed_conv)
+rate_control_conv = num_control_conv * 100 / num_control
+rate_exposed_conv = num_control_conv * 100 / num_control
+```
+
+## 2. Was the campaign profitable?
+
+### a. How much more money did TaskaBella make by running the campaign (excluding advertising costs)?
+
+```{r q2_a}
+options(scipen = 100)
+addl_profit <- lift * num_exposed * 40 / 100
+```
+Number of users in exposed group = `r num_exposed`  
+Profit per conversion = $40  
+
+**Additional profit**  
+    = lift * (Number of users in exposed group) * (Profit per conversion) / 100  
+    = lift * num_exposed * 40 / 100  
+    = `r lift` * `r num_exposed` * 40 / 100  
+    = `r addl_profit`  
+
+**Additional profit**  = $`r round(addl_profit, 2)`  
+
+## b. What was the cost of the campaign?
+
+```{r q2_b}
+
+CPM <- 9
+tot_impr <- sum(dat$tot_impr)
+cost_campaign <- tot_impr * CPM / 1000
+```
+
+Cost per 1000 (CPM) = `r CPM`  
+
+**Cost of campaign**  
+    = tot_impr * CPM / 1000  
+    = `r tot_impr` * `r CPM` / 1000  
+    = `r cost_campaign`  
+
+**Cost of campaign**  = $`r round(cost_campaign, 2)`
+
+## c. Calculate the ROI of the campaign. Was the campaign profitable?
+
+```{r q2_c}
+roi <- (addl_profit - cost_campaign) / cost_campaign * 100  
+```
+
+**ROI**  
+    = (addl_profit - cost_campaign) / cost_campaign * 100  
+    = `r addl_profit` - `r cost_campaign` / `r cost_campaign` * 100  
+    = `r roi`  
+  
+**ROI** = `r round(roi, 2)`%  
+
+Yes, The campaign was profitable as ROI was good.  
+
+## d. What was the opportunity cost of including a control group; how much more could have TaskaBella made with a smaller control group or not having a control group at all?
+
+```{r q2_d}
+opp_cost <- num_control * lift * 40 / 100
+```
+
+**Opportunity Cost**  
+    = lift * (number of users in control group) * (Profit per conversion) / 100  
+    = lift * num_control * 40 / 100  
+    = `r lift` * `r num_control` * 40 / 100  
+    = $`r opp_cost`  
+
+**Opportunity Cost** = $`r round(opp_cost, 2)`  
+
+If the control group had been shown ads for the product instead of PSA, an additional profit of $`r opp_cost` could have been obtained.  
+
+## 3. How did the number of impressions seen by each user influence the effectiveness of advertising? 
+
+### a.1 Create a chart of conversion rates as a function of the number of ads displayed to users. 
+
+#### Conversion rate by total impressions 
+
+```{r q_3_a_1, fig.width=12}
+by_tot_impr <- group_by(dat, tot_impr, ftest)
+summ <- summarise(by_tot_impr, conversion_rate = mean(converted) * 100)
+ggplot(summ) +
+  aes(x = tot_impr, y = conversion_rate, colour = ftest) +
+  geom_jitter(size=1) +
+  geom_smooth(method = 'loess') +
+  theme_bw() +
+  ggtitle("Conversion rate by total impressions, Overall") +
+  labs(colour = "Group") 
+
+```
+
+The scatter plot does not show a clear pattern. The number of points decrease as the total impressions increase, suggesting a presence of outliers. 
+
+#### Boxplot total impressions
+
+```{r fig.height=1.5}
+ggplot(dat, aes(y = "", x = tot_impr)) +
+  geom_boxplot() +
+  scale_x_continuous(n.breaks = 20) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=90, vjust = 0.5)) 
+```
+
+The values of total impressions above 61.5 are outliers by the IQR method. We can try to bin the data to see if a pattern emerges.
+
+#### Equal width binning
+
+##### Conversion rate by total impressions
+
+```{r fig.width=10, fig.height=5}
+# used in scale_x_discrete
+every_nth = function(n) {return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})}
+
+x <- dat
+x$tot_impr_bin_w <- cut(x$tot_impr, breaks = seq(min(x$tot_impr) - min(x$tot_impr) %% 20, max(x$tot_impr) + 20, 20), dig.lab = 5)
+
+summ_w <- x %>%
+  group_by(tot_impr_bin_w, ftest) %>%
+  summarise(conversion_rate = mean(converted) * 100, count = n())
+
+ggplot(summ_w, aes(tot_impr_bin_w, conversion_rate, fill = ftest)) +
+  geom_bar(stat = "identity") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Conversion rates by total impressions - Control and Test Groups")
+
+```
+
+We observe a steady increase in conversion rate till around (120, 140] total impressions. Further increase in total impressions slightly reduces the conversion rate till (320,340] total impressions. Further increase in total impressions leads to an erratic conversion rate which sometimes falls to 0 for certain values of total impressions or increases dramatically. 
+
+##### Number of users by total impressions
+
+```{r fig.width=10, fig.height=5}
+ggplot(summ_w, aes(tot_impr_bin_w, count, fill = ftest)) +
+  geom_bar(stat = "identity") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Number of users by total impressions - Control and Test Groups")
+```
+
+We see more than 60% users in the first bin (0,20]. We need to keep in mind the number of users under each bin is sharply decreasing with increasing total impressions and falls to insignificant numbers above 300 total impressions. Hence, equal width binning does not give a good representaion of the data.
+
+#### Equal frequency binning
+
+##### Conversion rate by total impressions
+
+```{r fig.width=10, fig.height=5}
+#quantile(x$tot_impr, probs = seq(0, 1, .002))
+
+x$tot_impr_bin_f <- cut(x$tot_impr, breaks = c(0, unique(quantile(x$tot_impr, probs = seq(0, 1, .005)))), dig.lab = 5)
+
+summ_f <- x %>%
+  group_by(tot_impr_bin_f, ftest) %>%
+  summarise(conversion_rate = mean(converted) * 100, count = n())
+
+ggplot(summ_f, aes(tot_impr_bin_f, conversion_rate, fill = ftest)) +
+  geom_bar(stat = "identity") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Conversion rates by total impressions - Control and Test Groups")
+```
+
+We can see the conversion rate steadily increases and reaches a peak at (116,128] total impressions. Further increase in total impressions leads to a declining conversion rate.  
+
+##### Number of users by total impressions
+
+```{r fig.width=10,fig.height=5}
+ggplot(summ_f, aes(tot_impr_bin_f, count, fill = ftest)) +
+  geom_bar(stat = "identity") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Number of users by total impressions - Control and Test Groups")
+
+```
+
+
+### b. What can you infer from the charts? In what region is advertising most effective?
+
+The conversion rate increases as the number of impressions is increased and peaks at close to 19% for 117 to 128 total impressions for the test group. If the total impressions are increased further, the conversion rate goes down. 
+
+To check the effectiveness of the campaign, we need to also consider the ROI.
+
+### c. What do the above figures imply for the design of the next campaign assuming that consumer response would be similar?
+
+```{r}
+x <- dat #[dat$test == 1,]
+
+x$tot_impr_bin_f <- cut(x$tot_impr, breaks = c(0, unique(quantile(x$tot_impr, probs = seq(0, 1, .01)))), dig.lab = 5)
+
+summ_f <- x %>%
+  group_by(tot_impr_bin_f, test, converted) %>%
+  summarise(num_converted = n(), sum_tot_impr = sum(tot_impr)) %>%
+  mutate(prop = num_converted * 100 / sum(num_converted), sum = sum(num_converted), sum_tot_impr = sum(sum_tot_impr))
+  
+#summ_f0 <- filter(summ_f, converted == 0)
+#summ_f1 <- filter(summ_f, converted == 1)
+  
+summ_f_t <- summ_f %>% filter(test == 1, converted == 1, tot_impr_bin_f != '(11,12]'
+                              )
+summ_f_c <- summ_f %>% filter(test == 0, converted == 1)
+
+CPM <- 9
+summ_f_t$lift <- summ_f_t$prop - summ_f_c$prop
+summ_f_t <- mutate(summ_f_t, 
+                   num_exposed = sum - num_converted,
+                   addl_profit = lift * num_exposed * 40 / 100,
+                   cost_campaign = sum_tot_impr * CPM / 1000,
+                   ROI = (addl_profit - cost_campaign) * 100 / cost_campaign)
+
+
+every_nth = function(n) {return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})}
+```
+
+#### Additional Profit by Total Impressions - test group
+
+```{r}
+ggplot(summ_f_t, aes(x = tot_impr_bin_f)) +
+  geom_bar(aes(y = addl_profit), stat = "identity", position = "stack", fill = "#00bfc4") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Additional profit by total impressions - test group")
+
+```
+
+
+#### Cost of Campaign by Total Impressions - test group
+
+```{r}
+ggplot(summ_f_t, aes(x = tot_impr_bin_f)) +
+  geom_bar(aes(y = cost_campaign), stat = "identity", position = "stack", fill = "#00bfc4") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Cost of campaign by total impressions - test group")
+```
+
+#### ROI by Total Impressions - test group
+
+```{r}
+ggplot(summ_f_t, aes(x = tot_impr_bin_f)) +
+  geom_bar(aes(y = ROI), stat = "identity", position = "stack", fill = "#00bfc4") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("ROI by total impressions - test group")
+```
+
+There is mostly negative ROI with some exceptions upto around 45 total impressions. ROI is good when the total impressions range from 45 to 116 except when the total impressions range from 50 to 53. Therefore 53 to 116 is the recommended range of total impressions for the next campaign to maximize the ROI. 
+
+## 4. How does consumer response to advertising vary on different days of the week and at different times of the day?
+
+### a. Create a chart with the conversion rates for the control group and the exposed group as a function of the day of week when they were shown the most impressions.
+
+```{r q_4a}
+summ_day <- dat %>%
+  group_by(mode_impr_day, ftest) %>%
+  summarise(conversion_rate = mean(converted) * 100)
+```
+
+
+```{r q_4b}
+ggplot() +
+  geom_bar(data = summ_day, 
+           aes(x = mode_impr_day, y = conversion_rate, fill = ftest), 
+           stat = "identity", position = "dodge") +
+  theme_bw() +
+  ggtitle("Conversion rate by day of week when they were shown\nthe most impressions") +
+  labs(fill = "Group") +
+  scale_x_continuous(n.breaks = 7)
+
+```
+
+### b. Create the same chart for hours within a day (excluding the period between midnight and 8 a.m.).
+
+```{r q_4c}
+
+summ_hour <- dat %>%
+  filter(mode_impr_hour > 7) %>%
+  group_by(mode_impr_hour, ftest) %>%
+  summarise(conversion_rate = mean(converted) * 100)
+```
+
+```{r q_4d}
+ggplot() +
+  geom_bar(data = summ_hour, 
+           aes(x = mode_impr_hour, y = conversion_rate, fill = ftest), 
+           stat = "identity", position = "dodge") +
+  ggtitle("Conversion rate by hour of day when they were shown\nthe most impressions") +
+  labs(fill = "Group") +
+  scale_x_continuous(n.breaks = 16) +
+  theme_bw()
+```
+
+
+### c. What days/hours is advertising most/least effective?
+
+From the graph, we can read the highest and lowest values for the exposed group.
+
+```{r}
+summ_day <- filter(summ_day, ftest == "test")
+```
+
+#### Most effective day
+```{r}
+knitr::kable(tail(arrange(summ_day, conversion_rate), 1))
+```
+
+=> Most effective on Mondays.  
+
+#### Least effective day
+```{r}
+knitr::kable(head(arrange(summ_day, conversion_rate), 1))
+```
+
+=> Least effective on Saturdays
+
+#### Most effective hour
+```{r}
+knitr::kable(tail(arrange(summ_hour, conversion_rate), 1))
+```
+
+=> Most effective between 4 to 5 pm
+
+#### Least effective hour
+
+```{r}
+knitr::kable(head(arrange(summ_hour, conversion_rate), 1))
+```
+
+=> Least effective between 8 to 9 am
+
+
+#### Another representation:
+
+```{r}
+  
+##with colour & using percentage
+ggplot(dat, aes(x= mode_impr_day,  group= converted)) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+  #geom_text(aes( label = scales::percent(..prop..),
+  #               y= ..prop.. ), stat= "count", vjust = -.5) +
+  labs(y = "Percent Conversions", fill="Day") +
+  facet_grid(~ftest) +
+  scale_y_continuous(labels = scales::percent)
+
+
+```
+
+From the above graph, we can see that Monday was the most effective and Saturday was the least effective overall for the test group.
+
+
+```{r fig.width=10}
+## with colour
+dat %>%
+  filter(mode_impr_hour > 7) %>%
+  ggplot(aes(x= mode_impr_hour,  group= converted)) + 
+    geom_bar(aes(y = round(..prop.., 2), fill = factor(..x..)), stat="count") +
+    #geom_text(aes( label = scales::percent(round(..prop.., 2)),
+    #               y= ..prop.. ), stat= "count", vjust =-0.5) +
+    labs(y = "Percent Conversions", fill="Hour") +
+    facet_grid(~ftest) +
+    scale_y_continuous(labels = scales::percent)
+
+```
+From the above graph, we can see:
+
+##### Control group
+
+###### Most effective time
+
+12 pm to 1 pm and 2 pm to 3 pm
+
+###### Least effective time
+
+8 pm to 9 pm and 11 pm to midnight
+
+##### Test group
+
+###### Most effective time
+
+2 pm to 4 pm
+
+###### Least effective time
+
+8 pm to 9 pm
+
+
+## 5. Educated binning - bins of 20 upto 300 tot_imp, bins of 100 above 200 tot_impr
+
+#### Conversion rate by total impressions
+
+```{r fig.width=10, fig.height=5}
+#quantile(x$tot_impr, probs = seq(0, 1, .002))
+
+x$tot_impr_bin_f <- cut(x$tot_impr, breaks = unique(c(seq(0, 300, 20), seq(300, 2100, 100))), dig.lab = 5)
+
+summ_f <- x %>%
+  group_by(tot_impr_bin_f, ftest) %>%
+  summarise(conversion_rate = mean(converted) * 100, count = n())
+
+ggplot(summ_f, aes(tot_impr_bin_f, conversion_rate, fill = ftest)) +
+  geom_bar(stat = "identity") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Conversion rates by total impressions - Control and Test Groups")
+```
+
+We can see the conversion rate steadily increases and reaches a peak at (120,140] total impressions. Further increase in total impressions leads to a slightly reduced conversion rate.
+
+#### Number of users by total impressions
+
+```{r fig.width=10,fig.height=5}
+ggplot(summ_f, aes(tot_impr_bin_f, count, fill = ftest)) +
+  geom_bar(stat = "identity") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Number of users by total impressions - Control and Test Groups")
+
+```
+
+```{r}
+x <- dat #[dat$test == 1,]
+
+x$tot_impr_bin_f <- cut(x$tot_impr, breaks = unique(c(seq(0, 300, 20), seq(300, 2100, 100))), dig.lab = 5)
+
+summ_f <- x %>%
+  group_by(tot_impr_bin_f, test, converted) %>%
+  summarise(num_converted = n(), sum_tot_impr = sum(tot_impr)) %>%
+  mutate(prop = num_converted * 100 / sum(num_converted), sum = sum(num_converted), sum_tot_impr = sum(sum_tot_impr))
+  
+#summ_f0 <- filter(summ_f, converted == 0)
+#summ_f1 <- filter(summ_f, converted == 1)
+  
+summ_f_t <- summ_f %>% filter(test == 1, converted == 1, tot_impr_bin_f != '(11,12]'
+                              )
+summ_f_c <- summ_f %>% filter(test == 0, converted == 1)
+
+CPM <- 9
+summ_f_t$lift <- summ_f_t$prop - summ_f_c$prop
+summ_f_t <- mutate(summ_f_t, 
+                   num_exposed = sum - num_converted,
+                   addl_profit = lift * num_exposed * 40 / 100,
+                   cost_campaign = sum_tot_impr * CPM / 1000,
+                   ROI = (addl_profit - cost_campaign) * 100 / cost_campaign)
+
+
+every_nth = function(n) {return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})}
+```
+
+#### Additional Profit by Total Impressions - test group
+
+```{r}
+ggplot(summ_f_t, aes(x = tot_impr_bin_f)) +
+  geom_bar(aes(y = addl_profit), stat = "identity", position = "stack", fill = "#00bfc4") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Additional profit by total impressions - test group")
+
+```
+We see additional profit is maximum from 40 to 60 total impressions.
+
+#### Cost of Campaign by Total Impressions - test group
+
+```{r}
+ggplot(summ_f_t, aes(x = tot_impr_bin_f)) +
+  geom_bar(aes(y = cost_campaign), stat = "identity", position = "stack", fill = "#00bfc4") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Cost of campaign by total impressions - test group")
+```
+Comparing with the graph for additional profits above, we can see there is a noticable cost of campaign above 200 total impressions but little profit.
+
+#### ROI by Total Impressions - test group
+
+```{r}
+ggplot(summ_f_t, aes(x = tot_impr_bin_f)) +
+  geom_bar(aes(y = ROI), stat = "identity", position = "stack", fill = "#00bfc4") +
+  scale_x_discrete(breaks = every_nth(n=2)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("ROI by total impressions - test group")
+```
+
+ROI peaks at 250% from 80 to 100 total impressions. There is negative ROI above 300 impressions.
+
+80 to 100 impressions is the final recommendation to maximize the ROI.

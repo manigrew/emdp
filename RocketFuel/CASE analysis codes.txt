@@ -1,0 +1,70 @@
+## IMPORT DATA
+data <- read.csv ("clipboard", sep = "\t", header = TRUE)
+
+## Analyse whether there exists outliers in the data
+summary (data$tot_impr)
+boxplot(data$tot_impr)
+hist (data$tot_impr)
+
+## remove outliers
+data1<- data[data$tot_impr <100,]
+boxplot(data1$tot_impr)
+data1$binimp <- cut(data1$tot_impr, 10)
+
+## converting two variables as factors
+data1$cattest <- factor(data1$test, labels = c ("control", "test"))
+View (data1)
+
+## barchart
+ggplot(data1, aes (x = binimp, y = converted, fill = cattest)) + geom_bar (stat = "identity")
+
+##ggplot(data1, aes (x = binimp, y = converted)) + geom_bar (stat = "identity")+
+facet_wrap(data1$cattest)+ theme_bw()
+
+## To examine number of people converted in each group
+
+table<- table (data1$binimp, data1$converted,data1$cattest)
+table
+
+## to examine the proportion in terms of test (vs. control group)
+prop.table (table,margin = 3)*100
+
+## To analyse the cost
+cost <- ((table/1000)*9)
+cost
+
+## To examine the subset
+data8 <- data6[data6$Var2 == 1 & data6$Var3 == "test",]
+View(data8)
+
+## Examine the day of the week effect
+ggplot(data1, aes (x = mode_impr_day, y = converted)) + geom_bar (stat = "identity")+
+  facet_wrap(data1$cattest)+ theme_bw()
+##with colour & using percentage
+ggplot(data1, aes(x= mode_impr_day,  group= cattest)) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+  geom_text(aes( label = scales::percent(..prop..),
+                 y= ..prop.. ), stat= "count", vjust = -.5) +
+  labs(y = "Percent", fill="converted") +
+  facet_grid(~cattest) +
+  scale_y_continuous(labels = scales::percent)
+
+
+## Examine the day of the week effect
+ggplot(data1, aes (x = mode_impr_hour, y = converted)) + geom_bar (stat = "identity")+
+  facet_wrap(data1$cattest)+ theme_bw()
+
+## with colour
+ggplot(data1, aes(x= mode_impr_hour,  group= cattest)) + 
+  geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+  geom_text(aes( label = scales::percent(..prop..),
+                 y= ..prop.. ), stat= "count", vjust = -.5) +
+  labs(y = "Percent", fill="converted") +
+  facet_grid(~cattest) +
+  scale_y_continuous(labels = scales::percent)
+
+
+weblink: https://sebastiansauer.github.io/percentage_plot_ggplot2_V2/
+
+
+

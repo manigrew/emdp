@@ -1,0 +1,545 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={RocketFuel},
+  pdfauthor={Manish Grewal},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs}
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{RocketFuel}
+\author{Manish Grewal}
+\date{17/07/2020}
+
+\begin{document}
+\maketitle
+
+\hypertarget{was-the-advertising-campaign-effective-did-additional-consumers-convert-as-a-result-of-the-ad-campaign}{%
+\subsection{1. Was the advertising campaign effective? Did additional
+consumers convert as a result of the ad
+campaign?}\label{was-the-advertising-campaign-effective-did-additional-consumers-convert-as-a-result-of-the-ad-campaign}}
+
+\hypertarget{number-of-users}{%
+\paragraph{Number of users:}\label{number-of-users}}
+
+\begin{longtable}[]{@{}lrr@{}}
+\toprule
+& control & test\tabularnewline
+\midrule
+\endhead
+not-converted & 23104 & 550154\tabularnewline
+converted & 420 & 14423\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{proportion-of-users-as-percent}{%
+\paragraph{Proportion of users as
+percent:}\label{proportion-of-users-as-percent}}
+
+\begin{longtable}[]{@{}lrr@{}}
+\toprule
+& control & test\tabularnewline
+\midrule
+\endhead
+not-converted & 98.214589 & 97.445344\tabularnewline
+converted & 1.785411 & 2.554656\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{mosaicplot}{%
+\paragraph{Mosaicplot}\label{mosaicplot}}
+
+\includegraphics{RocketFuel_files/figure-latex/q1_d-1.pdf}
+
+The conversion rate of exposed group 2.555\% is greater than the
+conversion rate for control group 1.785\%.
+
+1.785\% of users in the test group would have converted even without the
+ad impressions.
+
+2.555\% - 1.785\% = 0.769\% additional users in the test group have
+converted.
+
+However, to be able to say that additional users converted as a result
+of the ad campaign, we need to check if the gain in conversion rate was
+statistically significant.
+
+\hypertarget{t-test-to-check-bias}{%
+\subsubsection{t-test to check bias:}\label{t-test-to-check-bias}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{t.test}\NormalTok{(dat}\OperatorTok{$}\NormalTok{tot_impr }\OperatorTok{~}\NormalTok{dat}\OperatorTok{$}\NormalTok{ftest)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Welch Two Sample t-test
+## 
+## data:  dat$tot_impr by dat$ftest
+## t = -0.218, df = 25608, p-value = 0.8274
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -0.6217286  0.4972735
+## sample estimates:
+## mean in group control    mean in group test 
+##              24.76114              24.82337
+\end{verbatim}
+
+As the mean of total impressions for the control and test groups are
+almost the same, and the t-value is reported as insignificant, we do not
+detect a bias in the total impressions for the control group and test
+group.
+
+Yes, additional consumers converted as a result of the ad campaign.
+
+\hypertarget{was-the-campaign-profitable}{%
+\subsection{2. Was the campaign
+profitable?}\label{was-the-campaign-profitable}}
+
+\hypertarget{a.-how-much-more-money-did-taskabella-make-by-running-the-campaign-excluding-advertising-costs}{%
+\subsubsection{a. How much more money did TaskaBella make by running the
+campaign (excluding advertising
+costs)?}\label{a.-how-much-more-money-did-taskabella-make-by-running-the-campaign-excluding-advertising-costs}}
+
+Number of users in exposed group = 564577\\
+Profit per conversion = \$40
+
+\textbf{Additional profit}\\
+= lift * (Number of users in exposed group) * (Profit per conversion) /
+100\\
+= lift * num\_exposed * 40 / 100\\
+= 0.7692453 * 564577 * 40 / 100\\
+= 173719.2858357
+
+\textbf{Additional profit} = \$173719.29
+
+\hypertarget{b.-what-was-the-cost-of-the-campaign}{%
+\subsection{b. What was the cost of the
+campaign?}\label{b.-what-was-the-cost-of-the-campaign}}
+
+Cost per 1000 (CPM) = 9
+
+\textbf{Cost of campaign}\\
+= tot\_impr * CPM / 1000\\
+= 14597182 * 9 / 1000\\
+= 131374.638
+
+\textbf{Cost of campaign} = \$131374.64
+
+\hypertarget{c.-calculate-the-roi-of-the-campaign.-was-the-campaign-profitable}{%
+\subsection{c.~Calculate the ROI of the campaign. Was the campaign
+profitable?}\label{c.-calculate-the-roi-of-the-campaign.-was-the-campaign-profitable}}
+
+\textbf{ROI}\\
+= (addl\_profit - cost\_campaign) / cost\_campaign * 100\\
+= 173719.2858357 - 131374.638 / 131374.638 * 100\\
+= 32.2319806
+
+\textbf{ROI} = 32.23\%
+
+Yes, The campaign was profitable as ROI was good.
+
+\hypertarget{d.-what-was-the-opportunity-cost-of-including-a-control-group-how-much-more-could-have-taskabella-made-with-a-smaller-control-group-or-not-having-a-control-group-at-all}{%
+\subsection{d.~What was the opportunity cost of including a control
+group; how much more could have TaskaBella made with a smaller control
+group or not having a control group at
+all?}\label{d.-what-was-the-opportunity-cost-of-including-a-control-group-how-much-more-could-have-taskabella-made-with-a-smaller-control-group-or-not-having-a-control-group-at-all}}
+
+\textbf{Opportunity Cost}\\
+= lift * (number of users in control group) * (Profit per conversion) /
+100\\
+= lift * num\_control * 40 / 100\\
+= 0.7692453 * 23524 * 40 / 100\\
+= \$7238.2907557
+
+\textbf{Opportunity Cost} = \$7238.29
+
+If the control group had been shown ads for the product instead of PSA,
+an additional profit of \$7238.2907557 could have been obtained.
+
+\hypertarget{how-did-the-number-of-impressions-seen-by-each-user-influence-the-effectiveness-of-advertising}{%
+\subsection{3. How did the number of impressions seen by each user
+influence the effectiveness of
+advertising?}\label{how-did-the-number-of-impressions-seen-by-each-user-influence-the-effectiveness-of-advertising}}
+
+\hypertarget{a.1-create-a-chart-of-conversion-rates-as-a-function-of-the-number-of-ads-displayed-to-users.}{%
+\subsubsection{a.1 Create a chart of conversion rates as a function of
+the number of ads displayed to
+users.}\label{a.1-create-a-chart-of-conversion-rates-as-a-function-of-the-number-of-ads-displayed-to-users.}}
+
+\hypertarget{conversion-rate-by-total-impressions}{%
+\paragraph{Conversion rate by total
+impressions}\label{conversion-rate-by-total-impressions}}
+
+\includegraphics{RocketFuel_files/figure-latex/q_3_a_1-1.pdf}
+
+The scatter plot does not show a clear pattern. The number of points
+decrease as the total impressions increase, suggesting a presence of
+outliers.
+
+\hypertarget{boxplot-total-impressions}{%
+\paragraph{Boxplot total impressions}\label{boxplot-total-impressions}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-1-1.pdf}
+
+The values of total impressions above 61.5 are outliers by the IQR
+method. We can try to bin the data to see if a pattern emerges.
+
+\hypertarget{equal-width-binning}{%
+\paragraph{Equal width binning}\label{equal-width-binning}}
+
+\hypertarget{conversion-rate-by-total-impressions-1}{%
+\subparagraph{Conversion rate by total
+impressions}\label{conversion-rate-by-total-impressions-1}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-2-1.pdf}
+
+We observe a steady increase in conversion rate till around (120, 140{]}
+total impressions. Further increase in total impressions slightly
+reduces the conversion rate till (320,340{]} total impressions. Further
+increase in total impressions leads to an erratic conversion rate which
+sometimes falls to 0 for certain values of total impressions or
+increases dramatically.
+
+\hypertarget{number-of-users-by-total-impressions}{%
+\subparagraph{Number of users by total
+impressions}\label{number-of-users-by-total-impressions}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-3-1.pdf}
+
+We see more than 60\% users in the first bin (0,20{]}. We need to keep
+in mind the number of users under each bin is sharply decreasing with
+increasing total impressions and falls to insignificant numbers above
+300 total impressions. Hence, equal width binning does not give a good
+representaion of the data.
+
+\hypertarget{equal-frequency-binning}{%
+\paragraph{Equal frequency binning}\label{equal-frequency-binning}}
+
+\hypertarget{conversion-rate-by-total-impressions-2}{%
+\subparagraph{Conversion rate by total
+impressions}\label{conversion-rate-by-total-impressions-2}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-4-1.pdf}
+
+We can see the conversion rate steadily increases and reaches a peak at
+(116,128{]} total impressions. Further increase in total impressions
+leads to a declining conversion rate.
+
+\hypertarget{number-of-users-by-total-impressions-1}{%
+\subparagraph{Number of users by total
+impressions}\label{number-of-users-by-total-impressions-1}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+\hypertarget{b.-what-can-you-infer-from-the-charts-in-what-region-is-advertising-most-effective}{%
+\subsubsection{b. What can you infer from the charts? In what region is
+advertising most
+effective?}\label{b.-what-can-you-infer-from-the-charts-in-what-region-is-advertising-most-effective}}
+
+The conversion rate increases as the number of impressions is increased
+and peaks at close to 19\% for 117 to 128 total impressions for the test
+group. If the total impressions are increased further, the conversion
+rate goes down.
+
+To check the effectiveness of the campaign, we need to also consider the
+ROI.
+
+\hypertarget{c.-what-do-the-above-figures-imply-for-the-design-of-the-next-campaign-assuming-that-consumer-response-would-be-similar}{%
+\subsubsection{c.~What do the above figures imply for the design of the
+next campaign assuming that consumer response would be
+similar?}\label{c.-what-do-the-above-figures-imply-for-the-design-of-the-next-campaign-assuming-that-consumer-response-would-be-similar}}
+
+\hypertarget{additional-profit-by-total-impressions---test-group}{%
+\paragraph{Additional Profit by Total Impressions - test
+group}\label{additional-profit-by-total-impressions---test-group}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-7-1.pdf}
+
+\hypertarget{cost-of-campaign-by-total-impressions---test-group}{%
+\paragraph{Cost of Campaign by Total Impressions - test
+group}\label{cost-of-campaign-by-total-impressions---test-group}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-8-1.pdf}
+
+\hypertarget{roi-by-total-impressions---test-group}{%
+\paragraph{ROI by Total Impressions - test
+group}\label{roi-by-total-impressions---test-group}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-9-1.pdf}
+
+There is mostly negative ROI with some exceptions upto around 45 total
+impressions. ROI is good when the total impressions range from 45 to 116
+except when the total impressions range from 50 to 53. Therefore 53 to
+116 is the recommended range of total impressions for the next campaign
+to maximize the ROI.
+
+\hypertarget{how-does-consumer-response-to-advertising-vary-on-different-days-of-the-week-and-at-different-times-of-the-day}{%
+\subsection{4. How does consumer response to advertising vary on
+different days of the week and at different times of the
+day?}\label{how-does-consumer-response-to-advertising-vary-on-different-days-of-the-week-and-at-different-times-of-the-day}}
+
+\hypertarget{a.-create-a-chart-with-the-conversion-rates-for-the-control-group-and-the-exposed-group-as-a-function-of-the-day-of-week-when-they-were-shown-the-most-impressions.}{%
+\subsubsection{a. Create a chart with the conversion rates for the
+control group and the exposed group as a function of the day of week
+when they were shown the most
+impressions.}\label{a.-create-a-chart-with-the-conversion-rates-for-the-control-group-and-the-exposed-group-as-a-function-of-the-day-of-week-when-they-were-shown-the-most-impressions.}}
+
+\includegraphics{RocketFuel_files/figure-latex/q_4b-1.pdf}
+
+\hypertarget{b.-create-the-same-chart-for-hours-within-a-day-excluding-the-period-between-midnight-and-8-a.m..}{%
+\subsubsection{b. Create the same chart for hours within a day
+(excluding the period between midnight and 8
+a.m.).}\label{b.-create-the-same-chart-for-hours-within-a-day-excluding-the-period-between-midnight-and-8-a.m..}}
+
+\includegraphics{RocketFuel_files/figure-latex/q_4d-1.pdf}
+
+\hypertarget{c.-what-dayshours-is-advertising-mostleast-effective}{%
+\subsubsection{c.~What days/hours is advertising most/least
+effective?}\label{c.-what-dayshours-is-advertising-mostleast-effective}}
+
+From the graph, we can read the highest and lowest values for the
+exposed group.
+
+\hypertarget{most-effective-day}{%
+\paragraph{Most effective day}\label{most-effective-day}}
+
+\begin{longtable}[]{@{}rlr@{}}
+\toprule
+mode\_impr\_day & ftest & conversion\_rate\tabularnewline
+\midrule
+\endhead
+1 & test & 3.32412\tabularnewline
+\bottomrule
+\end{longtable}
+
+=\textgreater{} Most effective on Mondays.
+
+\hypertarget{least-effective-day}{%
+\paragraph{Least effective day}\label{least-effective-day}}
+
+\begin{longtable}[]{@{}rlr@{}}
+\toprule
+mode\_impr\_day & ftest & conversion\_rate\tabularnewline
+\midrule
+\endhead
+6 & test & 2.130657\tabularnewline
+\bottomrule
+\end{longtable}
+
+=\textgreater{} Least effective on Saturdays
+
+\hypertarget{most-effective-hour}{%
+\paragraph{Most effective hour}\label{most-effective-hour}}
+
+\begin{longtable}[]{@{}rlr@{}}
+\toprule
+mode\_impr\_hour & ftest & conversion\_rate\tabularnewline
+\midrule
+\endhead
+16 & test & 3.089286\tabularnewline
+\bottomrule
+\end{longtable}
+
+=\textgreater{} Most effective between 4 to 5 pm
+
+\hypertarget{least-effective-hour}{%
+\paragraph{Least effective hour}\label{least-effective-hour}}
+
+\begin{longtable}[]{@{}rlr@{}}
+\toprule
+mode\_impr\_hour & ftest & conversion\_rate\tabularnewline
+\midrule
+\endhead
+8 & control & 1.062215\tabularnewline
+\bottomrule
+\end{longtable}
+
+=\textgreater{} Least effective between 8 to 9 am
+
+\hypertarget{another-representation}{%
+\paragraph{Another representation:}\label{another-representation}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-15-1.pdf}
+
+From the above graph, we can see that Monday was the most effective and
+Saturday was the least effective overall for the test group.
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-16-1.pdf}
+From the above graph, we can see:
+
+\hypertarget{control-group}{%
+\subparagraph{Control group}\label{control-group}}
+
+Most effective time
+
+12 pm to 1 pm and 2 pm to 3 pm
+
+Least effective time
+
+8 pm to 9 pm and 11 pm to midnight
+
+\hypertarget{test-group}{%
+\subparagraph{Test group}\label{test-group}}
+
+Most effective time
+
+2 pm to 4 pm
+
+Least effective time
+
+8 pm to 9 pm
+
+\hypertarget{educated-binning---bins-of-20-upto-300-tot_imp-bins-of-100-above-200-tot_impr}{%
+\subsection{5. Educated binning - bins of 20 upto 300 tot\_imp, bins of
+100 above 200
+tot\_impr}\label{educated-binning---bins-of-20-upto-300-tot_imp-bins-of-100-above-200-tot_impr}}
+
+\hypertarget{conversion-rate-by-total-impressions-3}{%
+\paragraph{Conversion rate by total
+impressions}\label{conversion-rate-by-total-impressions-3}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-17-1.pdf}
+
+We can see the conversion rate steadily increases and reaches a peak at
+(120,140{]} total impressions. Further increase in total impressions
+leads to a slightly reduced conversion rate.
+
+\hypertarget{number-of-users-by-total-impressions-2}{%
+\paragraph{Number of users by total
+impressions}\label{number-of-users-by-total-impressions-2}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-18-1.pdf}
+
+\hypertarget{additional-profit-by-total-impressions---test-group-1}{%
+\paragraph{Additional Profit by Total Impressions - test
+group}\label{additional-profit-by-total-impressions---test-group-1}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-20-1.pdf}
+We see additional profit is maximum from 40 to 60 total impressions.
+
+\hypertarget{cost-of-campaign-by-total-impressions---test-group-1}{%
+\paragraph{Cost of Campaign by Total Impressions - test
+group}\label{cost-of-campaign-by-total-impressions---test-group-1}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-21-1.pdf}
+Comparing with the graph for additional profits above, we can see there
+is a noticable cost of campaign above 200 total impressions but little
+profit.
+
+\hypertarget{roi-by-total-impressions---test-group-1}{%
+\paragraph{ROI by Total Impressions - test
+group}\label{roi-by-total-impressions---test-group-1}}
+
+\includegraphics{RocketFuel_files/figure-latex/unnamed-chunk-22-1.pdf}
+
+ROI peaks at 250\% from 80 to 100 total impressions. There is negative
+ROI above 300 impressions.
+
+80 to 100 impressions is the final recommendation to maximize the ROI.
+
+\end{document}

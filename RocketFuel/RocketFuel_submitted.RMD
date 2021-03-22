@@ -1,0 +1,244 @@
+---
+title: "RocketFuel"
+author: "Manish Grewal"
+date: "17/07/2020"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r, setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+  comment = '', fig.width = 6, fig.height = 4
+)
+```
+
+## Load libraries
+```{r, output=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+## Reading the dataset
+```{r cars}
+setwd("C:/Users/manish.grewal/emdp/R/RocketFuel")
+dat <- read.csv("RocketFuel.csv")
+```
+
+
+
+# 1. Was the advertising campaign effective? Did additional consumers convert as a result of the ad campaign?
+
+#### We can compare the conversion rate of control group vs. the conversion rate of exposed group to see effectiveness
+```{r}
+control <- filter(dat, test == 0)
+num_control <- nrow(control)
+num_control
+
+control_conv <- filter(dat, test == 0, converted == 1)
+num_control_conv <- nrow(control_conv)
+num_control_conv
+
+exposed <- filter(dat, test == 1)
+num_exposed <- nrow(exposed)
+num_exposed
+
+exposed_conv <- filter(dat, test == 1, converted == 1)
+num_exposed_conv <- nrow(exposed_conv)
+num_exposed_conv
+
+```
+
+#### Conversion rate for control group
+
+```{r}
+rate_control_conv = num_control_conv * 100 / num_control
+rate_control_conv
+```
+#### Conversion rate for exposed group
+
+```{r}
+rate_exposed_conv = num_exposed_conv * 100 / num_exposed
+rate_exposed_conv
+```
+
+#### **Answer 1**
+#### As the conversion rate of exposed group `r rate_exposed_conv`% is greater than the conversion rate for control group `r rate_control_conv`%, we can conclude that the campaign is effective. 
+
+#### Yes, `rate_exposed_conv - rate_control_conv = ` `r rate_exposed_conv - rate_control_conv`% additional consumers converted as a result of the ad campaign.
+
+
+
+
+# 2. Was the campaign profitable?
+
+## a. How much more money did TaskaBella make by running the campaign (excluding advertising costs)?
+
+#### Number of users in exposed group = `r num_exposed`
+#### Profit per conversion = $40
+#### Additional profit = ((Conversion rate of exposed group) - (Conversion rate of control group)) * (Number of users in exposed group) * (Profit per conversion) / 100
+ 
+```{r}
+addl_profit <- (rate_exposed_conv - rate_control_conv) * num_exposed * 40 / 100
+addl_profit
+```
+
+## b. What was the cost of the campaign?
+
+#### Cost per 1000 (CPM) = $9
+#### Cost of campaign 
+
+```{r}
+
+cpm <- 9
+tot_impr <- sum(dat$tot_impr)
+cost_campaign <- tot_impr * cpm / 1000
+cost_campaign
+```
+
+
+## c. Calculate the ROI of the campaign. Was the campaign profitable?
+
+```{r}
+roi <- addl_profit / cost_campaign * 100  
+roi
+paste("ROI: ", roi, "%")
+```
+
+### Yes, Campaign was profitable as ROI was good
+
+## d. What was the opportunity cost of including a control group; how much more could have TaskaBella made with a smaller control group or not having a control group at all?
+
+```{r}
+opp_cost <- num_control * (rate_exposed_conv - rate_control_conv) * 40 / 100
+opp_cost
+paste("Opportunity cost in $:", opp_cost)
+```
+### If the control group had been shown ads for the product instead of PSA, an additional profit of $`r opp_cost` could have been obtained.
+
+
+
+
+# 3. How did the number of impressions seen by each user influence the effectiveness of advertising?
+
+## a. Create a chart of conversion rates as a function of the number of ads displayed to users. Plot conversion rates for those who were in the control group and for those who were exposed to the ad. Group together number of impressions as necessary to obtain a meaningful plot. (Conversion rate means the percentage of unique users who made a purchase.)
+
+#### control group
+
+```{r}
+ctrl <- filter(dat, test == 0) # control group
+expd <- filter(dat, test == 1) # exposed group
+
+by_tot_impr_ctrl <- group_by(ctrl, tot_impr)
+summ <- summarise(by_tot_impr_ctrl, conversion_rate = mean(converted))
+
+ggplot(summ) +
+  aes(x = tot_impr, y = conversion_rate) +
+  geom_point(size = 1L, colour = "red") +
+  geom_smooth(method = 'loess') +
+  theme_minimal() +
+  ggtitle("Conversion rate by tot_impr, Control group")
+
+```
+
+#### exposed group
+```{r}
+by_tot_impr_expd <- group_by(expd, tot_impr)
+summ <- summarise(by_tot_impr_expd, conversion_rate = mean(converted))
+
+ggplot(summ) +
+  aes(x = tot_impr, y = conversion_rate) +
+  geom_point(size = 1L, colour = "blue") +
+  geom_smooth(method = 'loess') +
+  theme_minimal() +
+  ggtitle("Conversion rate by tot_impr, Exposed group")
+
+```
+
+## b. What can you infer from the charts? In what region is advertising most effective?
+
+#### The conversion rate increases as the number of impressions is increased. However, as the number of impressions is increased beyond a limit (appears to be 250), we see a flattening of the smoothing curve and also a concentration of non conversions. Need to zoom in to the chart to get a better picture.
+
+## c. What do the above figures imply for the design of the next campaign assuming that consumer response would be similar?
+
+#### total impressions can be limited to up to 500 to ensure cost savings. At higher number of impression, conversion rate can dip unexpectedly.
+
+# 4. How does consumer response to advertising vary on different days of the week and at different times of the day?
+
+## a. Create a chart with the conversion rates for the control group and the exposed group as a function of the day of week when they were shown the most impressions.
+
+```{r}
+
+by_mode_day_ctrl <- group_by(ctrl, mode_impr_day)
+summ_ctrl <- summarise(by_mode_day_ctrl, conversion_rate = mean(converted))
+
+by_mode_day_expd <- group_by(expd, mode_impr_day)
+summ_expd <- summarise(by_mode_day_expd, conversion_rate = mean(converted))
+summ_day <- summ_expd
+```
+
+
+```{r}
+ggplot() +
+  geom_bar(data = summ_expd, aes(x = mode_impr_day, y = conversion_rate), stat = "identity", fill = "blue") + 
+  geom_bar(data = summ_ctrl, aes(x = mode_impr_day, y = conversion_rate), stat = "identity", fill = "red") +
+  ggtitle("Conversion rate by day, Blue=Exposed, Red=Control")
+
+```
+
+## b. Create the same chart for hours within a day (excluding the period between midnight and 8 a.m.).
+
+```{r, warning=FALSE}
+
+dat1 <- filter(dat, mode_impr_hour > 7)
+ctrl <- filter(dat1, test == 0)
+expd <- filter(dat1, test == 1)
+
+by_mode_hour_ctrl <- group_by(ctrl, mode_impr_hour)
+summ_ctrl <- summarise(by_mode_hour_ctrl, conversion_rate = mean(converted))
+
+by_mode_hour_expd <- group_by(expd, mode_impr_hour)
+summ_expd <- summarise(by_mode_hour_expd, conversion_rate = mean(converted))
+summ_hour <- summ_expd
+
+```
+
+```{r, warning=FALSE}
+ggplot() + 
+  geom_bar(data = summ_expd, aes(x = mode_impr_hour, y = conversion_rate), stat = "identity", fill = "blue") +
+  geom_bar(data = summ_ctrl, aes(x = mode_impr_hour, y = conversion_rate), stat = "identity",  fill = "red") +
+  ggtitle("Conversion rate by hour, Blue=Exposed, Red=Control")
+```
+
+
+## c. What days/hours is advertising most/least effective?
+
+#### From the graph, we can read the highest and lowest values for the exposed group. We can also cross check by arranging summ_day and summ_hour variables by conversion rate
+
+### Most effective day
+```{r}
+tail(arrange(summ_day, conversion_rate), 1)
+```
+#### => Most effective on Mondays.  
+  
+  
+### Least effective day
+```{r}
+head(arrange(summ_day, conversion_rate), 1)
+```
+#### => Least effective on Saturdays
+
+### Most effective hour
+```{r}
+tail(arrange(summ_hour, conversion_rate), 1)
+```
+
+#### => Most effective between 4 to 5 pm
+
+### Least effective hour
+
+```{r}
+head(arrange(summ_hour, conversion_rate), 1)
+```
+
+#### => Least effective between 9 to 10 am

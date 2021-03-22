@@ -1,0 +1,340 @@
+---
+title: "RocketFuel"
+author: "Manish Grewal"
+date: "17/07/2020"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo=FALSE, comment = '', fig.width = 6, fig.height = 4)
+```
+
+```{r load_libraries, output=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r load_dataset}
+setwd("C:/Users/manish.grewal/emdp/R/RocketFuel")
+dat <- read.csv("RocketFuel.csv")
+
+## Convert to factors
+dat$ftest <- factor(dat$test, labels = c("control", "test"))
+dat$fconverted <- factor(dat$converted, labels = c("not-converted", "converted"))
+```
+
+## 1. Was the advertising campaign effective? Did additional consumers convert as a result of the ad campaign?
+
+#### Number of users:  
+```{r q1_a}
+table1 <- table(dat$fconverted, dat$ftest)
+knitr::kable(table1)
+```
+
+#### Proportion of users as percent:  
+```{r q1_b}
+#margin.table(table1, margin = 1)
+percent_users <- prop.table(table1, margin = 2) * 100
+knitr::kable(percent_users)
+lift <- percent_users[4] - percent_users[2]
+```
+
+#### Mosaicplot
+
+```{r q1_d}
+mosaicplot(table1, main = "Conversions in control and test groups", xlab = "converted", ylab = "group", col = c(2,7))
+
+#str(as.data.frame(table1))
+#ggplot(as.data.frame(table1), aes(y = Freq, x = Var1)) + geom_bar(aes(fill = Var2), stat="identity", position = "fill")
+```
+
+The conversion rate of exposed group `r round(percent_users[4], 3)`% is greater than the conversion rate for control group `r round(percent_users[2], 3)`%. 
+
+`r round(percent_users[2], 3)`% of users in the test group would have converted even without the ad impressions. 
+
+`r round(percent_users[4], 3)`% - `r round(percent_users[2], 3)`% = `r round(lift,3)`% additional users in the test group have converted due to exposure to the ads. 
+
+However, to be able to say that additional users converted as a result of the ad campaign, we need to check if the gain in conversion rate was statistically significant.  
+
+### t-test to check bias:
+```{r qa_c, echo=TRUE}
+t.test(dat$tot_impr ~dat$ftest)
+```
+
+As the mean for the control and test groups are almost same, we do not detect a bias in the selection of control group.
+
+Yes, additional consumers converted as a result of the ad campaign.
+
+```{r q1_e}
+
+control <- filter(dat, test == 0)
+num_control <- nrow(control)
+control_conv <- filter(dat, test == 0, converted == 1)
+num_control_conv <- nrow(control_conv)
+exposed <- filter(dat, test == 1)
+num_exposed <- nrow(exposed)
+exposed_conv <- filter(dat, test == 1, converted == 1)
+num_exposed_conv <- nrow(exposed_conv)
+rate_control_conv = num_control_conv * 100 / num_control
+rate_exposed_conv = num_control_conv * 100 / num_control
+```
+
+## 2. Was the campaign profitable?
+
+### a. How much more money did TaskaBella make by running the campaign (excluding advertising costs)?
+
+```{r q2_a}
+options(scipen = 100) 
+addl_profit <- lift * num_exposed * 40 / 100
+```
+Number of users in exposed group = `r num_exposed`  
+Profit per conversion = $40  
+
+**Additional profit**  
+    = lift * (Number of users in exposed group) * (Profit per conversion) / 100  
+    = lift * num_exposed * 40 / 100  
+    = `r lift` * `r num_exposed` * 40 / 100  
+    = `r addl_profit`  
+
+**Additional profit**  = $`r round(addl_profit, 2)`  
+
+## b. What was the cost of the campaign?
+
+```{r q2_b}
+
+CPM <- 9
+tot_impr <- sum(dat$tot_impr)
+cost_campaign <- tot_impr * CPM / 1000
+```
+
+Cost per 1000 (CPM) = `r CPM`  
+
+**Cost of campaign**  
+    = tot_impr * CPM / 1000  
+    = `r tot_impr` * `r CPM` / 1000  
+    = `r cost_campaign`  
+
+**Cost of campaign**  = $`r round(cost_campaign, 2)`
+
+## c. Calculate the ROI of the campaign. Was the campaign profitable?
+
+```{r q2_c}
+roi <- (addl_profit - cost_campaign) / cost_campaign * 100  
+```
+
+**ROI**  
+    = (addl_profit - cost_campaign) / cost_campaign * 100  
+    = `r addl_profit` - `r cost_campaign` / `r cost_campaign` * 100  
+    = `r roi`  
+  
+**ROI** = `r round(roi, 2)`%  
+
+Yes, The campaign was profitable as ROI was good.  
+
+## d. What was the opportunity cost of including a control group; how much more could have TaskaBella made with a smaller control group or not having a control group at all?
+
+```{r q2_d}
+opp_cost <- num_control * lift * 40 / 100
+```
+
+**Opportunity Cost**  
+    = lift * (number of users in control group) * (Profit per conversion) / 100  
+    = lift * num_control * 40 / 100  
+    = `r lift` * `r num_control` * 40 / 100  
+    = $`r opp_cost`  
+
+**Opportunity Cost** = $`r round(opp_cost, 2)`  
+
+If the control group had been shown ads for the product instead of PSA, an additional profit of $`r opp_cost` could have been obtained.  
+
+## 3. How did the number of impressions seen by each user influence the effectiveness of advertising?
+
+### a. Create a chart of conversion rates as a function of the number of ads displayed to users. Plot conversion rates for those who were in the control group and for those who were exposed to the ad. Group together number of impressions as necessary to obtain a meaningful plot. (Conversion rate means the percentage of unique users who made a purchase.)
+
+#### Create a chart of conversion rates as a function of the number of ads displayed to users.
+
+```{r}
+
+```
+
+#### control group
+
+```{r q_3}
+data1 <- dat[dat$tot_impr <= 100,]
+
+data2 <- dat[dat$tot_impr > 100 & dat$tot_impr <= 200,]
+
+data3 <- subset(dat, dat$tot_impr > 200)
+
+#boxplot(data1$tot_impr)
+#hist(data1$tot_impr)
+#hist(data2$tot_impr)
+#hist(data3$tot_impr)
+```
+
+IQR = Q3 - Q1
+
+```{r q_3b}
+data1$cat_tot_impr <- cut(data1$tot_impr, 10)
+
+data1$test <- factor(data1$test, labels = c("control", "test"))
+plot1 <- ggplot(data1, aes(cat_tot_impr, converted, size = test)) +
+  geom_bar(stat = "identity")
+
+plot1 <- ggplot(data1, aes(cat_tot_impr, converted, fill = test)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+plot1
+```
+
+```{r q_3d}
+table2 <- table(data1$converted, data1$test)
+table2
+percent1 <- prop.table(table2, margin = 2)*100
+percent1
+lift <- percent1[4] - percent1[2]
+lift
+
+#ROI <- revenue - cos t/cost
+
+addl_rev <- (40*542523)*.0062
+#ROI
+
+table3 <- table(data2$converted, data2$test)
+table3
+percent1 <- prop.table(table3, margin = 2)*100
+lift <- percent1[4] - percent1[2]
+lift
+
+table4 <- table(data3$converted, data3$test)
+table4
+percent1 <- prop.table(table4, margin = 2)*100
+lift <- percent1[4] - percent1[2]
+lift
+
+```
+
+
+```{r q_3e}
+ctrl <- filter(dat, test == 0) # control group
+expd <- filter(dat, test == 1) # exposed group
+
+by_tot_impr_ctrl <- group_by(ctrl, tot_impr)
+summ <- summarise(by_tot_impr_ctrl, conversion_rate = mean(converted))
+
+p <- ggplot(summ, aes(tot_impr)) +
+  geom_boxplot()
+  
+
+ggplot(summ) +
+  aes(x = tot_impr, y = conversion_rate) +
+  geom_point(size = 1L, colour = "red") +
+  geom_smooth(method = 'loess') +
+  theme_minimal() +
+  ggtitle("Conversion rate by tot_impr, Control group")
+
+```
+
+#### exposed group
+```{r q_3f}
+by_tot_impr_expd <- group_by(expd, tot_impr)
+summ <- summarise(by_tot_impr_expd, conversion_rate = mean(converted))
+
+ggplot(summ) +
+  aes(x = tot_impr, y = conversion_rate) +
+  geom_point(size = 1L, colour = "blue") +
+  geom_smooth(method = 'loess') +
+  theme_minimal() +
+  ggtitle("Conversion rate by tot_impr, Exposed group")
+
+```
+
+## b. What can you infer from the charts? In what region is advertising most effective?
+
+#### The conversion rate increases as the number of impressions is increased. However, as the number of impressions is increased beyond a limit (appears to be 250), we see a flattening of the smoothing curve and also a concentration of non conversions. Need to zoom in to the chart to get a better picture.
+
+## c. What do the above figures imply for the design of the next campaign assuming that consumer response would be similar?
+
+#### total impressions can be limited to up to 500 to ensure cost savings. At higher number of impression, conversion rate can dip unexpectedly.
+
+# 4. How does consumer response to advertising vary on different days of the week and at different times of the day?
+
+## a. Create a chart with the conversion rates for the control group and the exposed group as a function of the day of week when they were shown the most impressions.
+
+```{r q_4a}
+
+by_mode_day_ctrl <- group_by(ctrl, mode_impr_day)
+summ_ctrl <- summarise(by_mode_day_ctrl, conversion_rate = mean(converted))
+
+by_mode_day_expd <- group_by(expd, mode_impr_day)
+summ_expd <- summarise(by_mode_day_expd, conversion_rate = mean(converted))
+summ_day <- summ_expd
+```
+
+
+```{r q_4b}
+ggplot() +
+  geom_bar(data = summ_expd, aes(x = mode_impr_day, y = conversion_rate), stat = "identity", fill = "blue") + 
+  geom_bar(data = summ_ctrl, aes(x = mode_impr_day, y = conversion_rate), stat = "identity", fill = "red") +
+  ggtitle("Conversion rate by day, Blue=Exposed, Red=Control")
+
+```
+
+## b. Create the same chart for hours within a day (excluding the period between midnight and 8 a.m.).
+
+```{r q_4c}
+
+dat1 <- filter(dat, mode_impr_hour > 7)
+ctrl <- filter(dat1, test == 0)
+expd <- filter(dat1, test == 1)
+
+by_mode_hour_ctrl <- group_by(ctrl, mode_impr_hour)
+summ_ctrl <- summarise(by_mode_hour_ctrl, conversion_rate = mean(converted))
+
+by_mode_hour_expd <- group_by(expd, mode_impr_hour)
+summ_expd <- summarise(by_mode_hour_expd, conversion_rate = mean(converted))
+summ_hour <- summ_expd
+
+```
+
+```{r q_4d}
+ggplot() + 
+  geom_bar(data = summ_expd, aes(x = mode_impr_hour, y = conversion_rate), stat = "identity", fill = "blue") +
+  geom_bar(data = summ_ctrl, aes(x = mode_impr_hour, y = conversion_rate), stat = "identity",  fill = "red") +
+  ggtitle("Conversion rate by hour, Blue=Exposed, Red=Control")
+```
+
+
+## c. What days/hours is advertising most/least effective?
+
+#### From the graph, we can read the highest and lowest values for the exposed group. We can also cross check by arranging summ_day and summ_hour variables by conversion rate
+
+### Most effective day
+```{r}
+tail(arrange(summ_day, conversion_rate), 1)
+```
+#### => Most effective on Mondays.  
+  
+  
+### Least effective day
+```{r}
+head(arrange(summ_day, conversion_rate), 1)
+```
+#### => Least effective on Saturdays
+
+### Most effective hour
+```{r}
+tail(arrange(summ_hour, conversion_rate), 1)
+```
+
+#### => Most effective between 4 to 5 pm
+
+### Least effective hour
+
+```{r}
+head(arrange(summ_hour, conversion_rate), 1)
+```
+
+#### => Least effective between 9 to 10 am
