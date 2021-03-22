@@ -1,0 +1,799 @@
+---
+title: "Final Assignment - BankAuto"
+author: "Manish Grewal"
+date: "28/11/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width = 7, fig.height = 4)
+```
+
+```{r load_libs, warning=FALSE, message=FALSE}
+library(readxl)
+library(car)
+library(caret)
+library(ROSE)
+library(pROC)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+```
+
+## Load dataset and check for missing values  
+
+```{r load_data}
+setwd("C:/Users/manish.grewal/emdp/R/Final")
+xlsx <- read_excel("IMB469-XLS-ENG.xlsx")
+
+# Removing not recommended columns
+xlsx <- xlsx[, -c(1:3,17,18,20)]
+
+#Check for missing values
+paste0("Is any NA?: ", any(is.na(xlsx)))
+
+#Check for null values
+paste0("Is any null?: ", any(is.null(xlsx)))
+```
+
+The columns that are not recommended for model building are removed except for the column AGE which may be used in building alternative model.
+
+There are no missing or null values in the truncated data set. 
+
+Missing values are present in the "start date" column but this column has been omitted from the truncated dataset.
+
+# Question 1. Build and interpret a logistic regression model to identify good and bad customers – a good customer is one who has never defaulted, any customer with a single default is a bad customer (15 Marks)
+
+### Pre-process the data  
+
+All columns are loaded as numeric variables from the excel dataset. The first five variables take continuous values. The rest of the columns take values 0 and 1 with interpretation as provided in the case study. Convert the variables that take 0 and 1 values into factors.
+
+```{r}
+xlsx[, 7:14] <- lapply(xlsx[, 7:14], 
+                       function(x) {recode(x, "0=0; 1=1", as.factor = TRUE)})
+```
+
+```{r}
+# Remove AGE column (using only the recommended columns for model-building)
+data <- xlsx[, -c(1)]
+```
+
+Below is the structure of the data after pre-processing:
+
+```{r}
+str(data)
+```
+
+### Split the data into training and validation set in 80:20 ratio  
+
+```{r}
+set.seed(123)
+myindex <- createDataPartition(data$DefaulterFlag, p = 0.8, list = FALSE)
+traindata <- train <- data[c(myindex),]
+testdata <- test <- data[-c(myindex),]
+```
+
+### Base model with recommended columns  
+
+```{r}
+set.seed(123)
+reg1 <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg1)
+```
+
+### Base model interpretation  
+
+Based on the coefficients of the dependent variables and their significance levels, we can deduce the following:
+
+ * **NOOFDEPE**: As the number of dependents increase, the chance of turning into a defaulter increases and this is significant at 0.1% level.
+ * **MTHINCTH**: As the monthly income in thousands increases the chance of turning into a defaulter decreases and this is significant at 5% level.
+ * **SALDATFR**: The later in the month a person receives salary decreases the chance of becoming a defaulter and this is highly significant.
+ * **TENORYR**: As the tenor in years increases the chance of turning into a defaulter increases and this is highly significant.
+ * **DWNPMFR**: As the fraction of loan in down-payment increases the chance of turning into a defaulter decreases and this is highly significant.
+ * **PROFBUS1**: A person with business is more likely to become a defaulter compared to a professional and this is highly significant.
+ * **QUALHSC**: A HSC person is more likely to become a defaulter compared to a graduate and this is highly significant.
+ * **QUAL_PG**: A post-graduate is less likely to become a defaulter compared to a graduate and this is highly significant.
+ * **SEXCODE**: A male is more likely to become a defaulter compared to a female and this is highly significant
+ * **FULLPDC**: A person who has given post-dated checks in full is less likely to become a defaulter compared to a person who has not and and this is highly significant.
+ * **FRICODE**: A person who owns a refrigerator is less likely to become a defaulter compared to a person who does not and this is highly significant.
+ * **WASHCODE**: A person who owns a washing machine is less likely to become a defaulter compared to a person who does not and this is highly significant.
+
+### Base model validation with test data  
+
+```{r}
+reg1_class <- predict(reg1, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg1_class > 0.5, 1, 0))
+cm1 <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm1
+```
+
+The accuracy of the model at `r cm1$overall[1] * 100`% is only marginally better than the no information rate of `r cm1$overall[5] * 100`%. The sensitivity is good at `r cm1$byClass[1] * 100`%, however the specificity is low at `r cm1$byClass[2] * 100`%. This means the model is able to identify defaulter reasonably well, but it is bad at predicting the good customers.
+
+### Base model - ROC  
+
+```{r}
+par (pty = "s")
+auc1 <- roc(train$DefaulterFlag, reg1$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+```
+
+
+### Check for data imbalance in training data  
+
+```{r}
+table(traindata$DefaulterFlag)
+```
+
+Number of defaulter is significantly higher in the training data. 
+
+### Resample training data to mitigate the imbalance  
+
+```{r}
+over <- ovun.sample(DefaulterFlag ~ ., data = train, method = "over", seed = 123,
+                    N = table(train$DefaulterFlag)[2] * 2)$data
+under <- ovun.sample(DefaulterFlag ~ ., data = train, method = "under", seed = 123,
+                     N = table(train$DefaulterFlag)[1] * 2)$data
+both <- ovun.sample(DefaulterFlag ~ ., data = train, method = "both", seed = 123,
+                    p = 0.5 )$data
+
+prop.table(table(over$DefaulterFlag))
+prop.table(table(under$DefaulterFlag))
+prop.table(table(both$DefaulterFlag))
+
+```
+
+### Base Model with Under sampling  
+
+```{r}
+train <- under
+
+set.seed(123)
+reg1u <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg1u)
+```
+
+### Base Model with Under sampling - validation  
+
+```{r}
+reg1u_class <- predict(reg1u, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg1u_class > 0.5, 1, 0))
+cm1u <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm1u
+```
+
+### Base Model with Under sampling - ROC  
+
+```{r}
+par (pty = "s")
+auc1u <- roc(train$DefaulterFlag, reg1u$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+```
+
+### Base model with Over sampling  
+
+```{r}
+train <- over
+
+set.seed(123)
+reg1o <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg1o)
+```
+
+### Base Model with Over sampling - validation  
+
+```{r}
+reg1o_class <- predict(reg1o, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg1o_class > 0.5, 1, 0))
+cm1o <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm1o
+```
+
+### Base Model with Over sampling - ROC  
+
+```{r}
+par (pty = "s")
+auc1o <- roc(train$DefaulterFlag, reg1o$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+```
+
+### Base model with both Over and Under sampling  
+
+```{r}
+train <- both
+
+set.seed(123)
+reg1b <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg1b)
+```
+
+### Base model with both Over and Under sampling - validation  
+
+```{r}
+reg1b_class <- predict(reg1b, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg1b_class > 0.5, 1, 0))
+cm1b <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm1b
+```
+
+### Base model with both Over and Under sampling - ROC  
+
+```{r}
+par (pty = "s")
+auc1b <- roc(train$DefaulterFlag, reg1b$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+```
+
+## Summary and comparison of models - Question 1  
+
+```{r}
+summ1 <- data.frame("Model" = c("Q1. Logistic - Base", "Q1. Logistic - Base - Under", "Q1. Logistic - Base - Over", "Q1. Logistic - Base - Both"),
+                    "Accuracy" = c(cm1$overall[1], cm1u$overall[1], 
+                                   cm1o$overall[1], cm1b$overall[1]),
+                    "Sensitivity" = c(cm1$byClass[1], cm1u$byClass[1], 
+                                      cm1o$byClass[1], cm1b$byClass[1]),
+                    "Specificity" = c(cm1$byClass[2], cm1u$byClass[2], 
+                                      cm1o$byClass[2], cm1b$byClass[2]),
+                    "AUC" = c(auc1$auc, auc1u$auc, auc1o$auc, auc1b$auc))
+
+knitr::kable(summ1)
+```
+
+## Conclusion - Question 1  
+
+All three models with re-sampled data have poor accuracy of 33% with sensitivity and specificity at around 31% and 37% respectively. The accuracy of re-sampled models is much lower than the base model
+
+The Area under Receiver Operating Characteristics curve (AUC) is also lower than the base model for under sampled data. So, we reject the model with under sampling compared to the base model.
+
+The AUC for the "over" and both" models are marginally higher than the base model. However, based on accuracy, we reject the resampled models.
+
+The "base" model has the best characteristics out of the models tried so far.
+
+# Question 2. Build alternative logistic regression models & check the predictive accuracy of the models and construct the ROC and estimate the AUC (10 Marks)
+
+## Alternative model 1 - with AGE  
+
+To build alternative model, we include AGE column from the original data set. As per the Exhibit I in the case study, relation of AGE between defaulters and non defaulters has been analyzed. Following are the columns included in the alternative model:
+
+```{r}
+data <- xlsx
+names(data)
+```
+
+### Split the data into training and validation set in 80:20 ratio  
+
+```{r}
+set.seed(123)
+myindex <- createDataPartition(data$DefaulterFlag, p = 0.8, list = FALSE)
+traindata <- train <- data[c(myindex),]
+testdata <- test <- data[-c(myindex),]
+```
+
+### Alternative model 1  
+
+```{r}
+set.seed(123)
+reg2 <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg2)
+```
+
+### Alternative model 1 - validation  
+
+```{r}
+reg2_class <- predict(reg2, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg2_class > 0.5, 1, 0))
+cm2 <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm2
+```
+ 
+### Alternative model 1 - ROC  
+
+```{r}
+par (pty = "s")
+auc2 <- roc(train$DefaulterFlag, reg2$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+```
+
+## Alternative model 2 - with AGE, without MTHINCTH  
+
+As the variable MTHINCTH is not significant in the model, we build a simpler model without including this variable.
+
+### Split the data into training and validation set in 80:20 ratio  
+
+```{r}
+train <- subset(train, select = -c(MTHINCTH))
+test <- subset(test, select = -c(MTHINCTH))
+```
+
+### Alternative model 2  
+
+```{r}
+set.seed(123)
+reg2a <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg2a)
+```
+
+### Alternative model 2 - validation  
+
+```{r}
+reg2a_class <- predict(reg2a, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg2a_class > 0.5, 1, 0))
+cm2a <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm2a
+```
+
+### Alternative model 2 - ROC  
+
+```{r}
+par (pty = "s")
+auc2a <- roc(train$DefaulterFlag, reg2a$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+```
+
+### Check for data imbalance in training data  
+
+```{r}
+prop.table(table(traindata$DefaulterFlag))
+```
+
+Number of defaulter is significantly higher in the training data. 
+
+### Resample training data to mitigate the imbalance  
+
+```{r}
+over <- ovun.sample(DefaulterFlag ~ ., data = train, method = "over", seed = 123,
+                    N = table(train$DefaulterFlag)[2] * 2)$data
+under <- ovun.sample(DefaulterFlag ~ ., data = train, method = "under", seed = 123,
+                     N = table(train$DefaulterFlag)[1] * 2)$data
+both <- ovun.sample(DefaulterFlag ~ ., data = train, method = "both", seed = 123,
+                    p = 0.5 )$data
+
+paste("Over sampling")
+table(over$DefaulterFlag)
+paste("Over sampling")
+table(under$DefaulterFlag)
+paste("Both sampling")
+table(both$DefaulterFlag)
+
+```
+
+### Alternative model 2 with Under sampling  
+
+```{r}
+train <- under
+
+set.seed(123)
+reg2u <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg2u)
+```
+
+### Alternative model 2 with Under sampling - validation  
+
+```{r}
+reg2u_class <- predict(reg2u, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg2u_class > 0.5, 1, 0))
+cm2u <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm2u
+```
+
+### Alternative model 2 with Under sampling - ROC  
+
+```{r}
+par (pty = "s")
+auc2u <- roc(train$DefaulterFlag, reg2u$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+#auc2u
+```
+
+### Alternative model 2 with Over sampling  
+
+```{r}
+train <- over
+
+set.seed(123)
+reg2o <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg2o)
+```
+
+### Alternative model 2 with Over sampling - validation  
+
+```{r}
+reg2o_class <- predict(reg2o, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg2o_class > 0.5, 1, 0))
+cm2o <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm2o
+```
+
+### Alternative model 2 with Over sampling - ROC  
+
+```{r}
+par (pty = "s")
+auc2o <- roc(train$DefaulterFlag, reg2o$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+auc2o
+```
+
+### Alternative model 2 with both Over and Under sampling  
+
+```{r}
+train <- both
+
+set.seed(123)
+reg2b <- glm(DefaulterFlag ~ ., family = binomial, data = train)
+summary(reg2b)
+```
+
+### Alternative model 2 with both Over and Under sampling - validation  
+
+```{r}
+reg2b_class <- predict(reg2b, newdata = test, type = "response")
+pred <- as.factor(ifelse(reg2b_class > 0.5, 1, 0))
+cm2b <- confusionMatrix(pred, test$DefaulterFlag, positive = "1")
+cm2b
+```
+
+### Alternative model 2 with both Over and Under sampling - ROC  
+
+```{r}
+par(pty = "s")
+auc2b <- roc(train$DefaulterFlag, reg2b$fitted.values, 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    xlab = "FALSE POSITIVE PERCENTAGE", ylab = "TRUE POSITIVE PERCENTAGE", 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE)
+auc2b
+```
+
+## Summary and comparion of alternative models - Question 2  
+
+```{r}
+summ2 <- data.frame("Model" = c("Q2. Alternate 1", "Q2. Alternate 2", "Q2. Alternate 2 - Under", "Q2. Alternate 2 - Over", "Q2. Alternate 2 - Both"),
+                    "Accuracy" = c(cm2$overall[1], cm2a$overall[1], cm2u$overall[1], 
+                                   cm2o$overall[1], cm2b$overall[1]),
+                    "Sensitivity" = c(cm2$byClass[1], cm2a$byClass[1], cm2u$byClass[1], 
+                                      cm2o$byClass[1], cm2b$byClass[1]),
+                    "Specificity" = c(cm2$byClass[2], cm2a$byClass[2], cm2u$byClass[2], 
+                                      cm2o$byClass[2], cm2b$byClass[2]),
+                    "AUC" = c(auc2$auc, auc2a$auc, auc2u$auc, auc2o$auc, auc2b$auc))
+
+knitr::kable(summ2)
+```
+
+## Conclusion - Question 2  
+
+All three models with re-sampled data have poor accuracy of 33% with sensitivity and specificity at around 31% and 37% respectively. The accuracy of resampled models is much lower than the base model
+
+The Area under Receiver Operating Characteristics curve (AUC) is also lower than the base model for under sampled data. So, we reject the model with under sampling compared to the base model.
+
+The AUC for the "over" and both" models are marginally higher than the base model. However, based on accuracy, we reject the resampled models.
+
+The "base" model has the best characteristics out of the models tried so far.
+
+# Question 3. Apply alternative machine learning algorithms (e.g., Decision Tree & Random Forest) and examine whether the use of these algorithms is suitable to add better predictive power over the logistic regression constructed to predict the creditworthiness of the customers (20 Marks [10+10]).  
+
+```{r}
+data[,1] <- (data[,1] - min(data[,1])) / (max(data[,1]) - min(data[,1]))
+data[,2] <- (data[,2] - min(data[,2])) / (max(data[,2]) - min(data[,2]))
+data[,3] <- (data[,3] - min(data[,3])) / (max(data[,3]) - min(data[,3]))
+data[,4] <- (data[,4] - min(data[,4])) / (max(data[,4]) - min(data[,4]))
+data[,5] <- (data[,5] - min(data[,5])) / (max(data[,5]) - min(data[,5]))
+data[,6] <- (data[,6] - min(data[,6])) / (max(data[,6]) - min(data[,6]))
+
+set.seed(123)
+myindex <- createDataPartition(data$DefaulterFlag, p = 0.8, list = FALSE)
+train <- train <- data[c(myindex),]
+test <- test <- data[-c(myindex),]
+```
+
+### Resample training data to mitigate the imbalance  
+
+```{r}
+over <- ovun.sample(DefaulterFlag ~ ., data = train, method = "over", seed = 123,
+                    N = table(train$DefaulterFlag)[2] * 2)$data
+under <- ovun.sample(DefaulterFlag ~ ., data = train, method = "under", seed = 123,
+                     N = table(train$DefaulterFlag)[1] * 2)$data
+both <- ovun.sample(DefaulterFlag ~ ., data = train, method = "both", seed = 123,
+                    p = 0.5 )$data
+
+prop.table(table(over$DefaulterFlag))
+prop.table(table(under$DefaulterFlag))
+prop.table(table(both$DefaulterFlag))
+
+```
+
+## Decision Tree  
+
+### Decision Tree model  
+
+```{r}
+regdt <- rpart(DefaulterFlag ~ ., data = train)
+#summary(regdt)
+rpart.plot(regdt, extra = 2)
+```
+
+### Decision Tree model - validation  
+
+```{r}
+regdt_class <- predict(regdt, newdata = test, type = "class")
+regdt_class1 <- predict(regdt, newdata = test, type = "prob")
+#summary(regdt_class)
+
+cmdt <- confusionMatrix(regdt_class, test$DefaulterFlag, positive = "1")
+cmdt
+varImp(regdt)
+```
+
+### Decision Tree model - ROC  
+
+```{r}
+par(pty="s")
+aucdt <- roc(test$DefaulterFlag, regdt_class1[,2], 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE #, print.auc.y = 80, add = TRUE
+    )
+```
+
+## Random Forest  
+
+```{r}
+set.seed(123)
+myindex <- createDataPartition(data$DefaulterFlag, p = 0.8, list = FALSE)
+train <- train <- data[c(myindex),]
+test <- test <- data[-c(myindex),]
+
+```
+
+### Random Forest model - tuning  
+
+```{r}
+train <- as.data.frame(train)
+tuneRF(train[,-14], train[,14], 
+       stepFactor = 2, plot = TRUE, ntreeTry = 300, improve = .01)
+```
+
+### RandomForest model  
+
+```{r}
+set.seed(123)
+regrf <- randomForest(DefaulterFlag ~ ., data = train, mtry = 2, ntree = 300)
+plot(regrf)
+```
+
+### RandomForest model - variable importance  
+
+```{r}
+varImpPlot(regrf, sort = TRUE, n.var = 10, main="Variable Importance")
+```
+
+
+```{r}
+regrf_class <- predict(regrf, newdata = test, type = "class")
+regrf_class1 <- predict(regrf, newdata = test, type = "prob")
+summary(regrf_class)
+
+cmrf <- confusionMatrix(regrf_class, test$DefaulterFlag, positive = "1")
+cmrf
+```
+
+### RandomForest model - ROC  
+
+```{r}
+par(pty="s")
+aucrf <- roc(test$DefaulterFlag, regrf_class1[,2], 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE #, print.auc.y = 80, add = TRUE
+    )
+```
+
+### Resample training data to mitigate the imbalance  
+
+```{r}
+over <- ovun.sample(DefaulterFlag ~ ., data = train, method = "over", seed = 123,
+                    N = table(train$DefaulterFlag)[2] * 2)$data
+under <- ovun.sample(DefaulterFlag ~ ., data = train, method = "under", seed = 123,
+                     N = table(train$DefaulterFlag)[1] * 2)$data
+both <- ovun.sample(DefaulterFlag ~ ., data = train, method = "both", seed = 123,
+                    p = 0.5 )$data
+
+prop.table(table(over$DefaulterFlag))
+prop.table(table(under$DefaulterFlag))
+prop.table(table(both$DefaulterFlag))
+
+```
+
+### RandomForest with over sampled data - tuning  
+
+```{r}
+train <- over
+tuneRF(train[,-14], train[,14], 
+       stepFactor = 2, plot = TRUE, ntreeTry = 300, improve = .01)
+```
+
+### RandomForest with over sampled data  
+
+```{r}
+set.seed(123)
+regrfo <- randomForest(DefaulterFlag ~ ., data = train, mtry = 6, ntree = 300)
+plot(regrfo)
+```
+
+### RandomForest with over sampled data - variable importance  
+
+```{r}
+varImpPlot(regrfo, sort = TRUE, n.var = 10, main="Variable Importance")
+```
+
+### RandomForest with over sampled data - validation  
+
+```{r}
+regrfo_class <- predict(regrfo, newdata = test, type = "class")
+regrfo_class1 <- predict(regrfo, newdata = test, type = "prob")
+
+cmrfo <- confusionMatrix(regrfo_class, test$DefaulterFlag, positive = "1")
+cmrfo
+```
+
+### RandomForest with over sampled data - ROC  
+
+```{r}
+par(pty="s")
+aucrfo <- roc(test$DefaulterFlag, regrfo_class1[,2], 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE #, print.auc.y = 80, add = TRUE
+    )
+```
+
+# RandomForest with under sampled data - tuning  
+
+```{r}
+train <- under
+set.seed(123)
+tuneRF(train[,-14], train[,14], 
+       stepFactor = 2, plot = TRUE, ntreeTry = 300, improve = .01)
+```
+
+# RandomForest with under sampled data  
+
+```{r}
+set.seed(123)
+regrfu <- randomForest(DefaulterFlag ~ ., data = train, mtry = 2, ntree = 300)
+plot(regrfu)
+```
+
+### RandomForest with under sampled data - variable importance  
+
+```{r}
+varImpPlot(regrfu, sort = TRUE, n.var = 10, main="Variable Importance")
+```
+
+# RandomForest with under sampled data - validation  
+
+```{r}
+regrfu_class <- predict(regrfu, newdata = test, type = "class")
+regrfu_class1 <- predict(regrfu, newdata = test, type = "prob")
+
+cmrfu <- confusionMatrix(regrfu_class, test$DefaulterFlag, positive = "1")
+cmrfu
+```
+
+### RandomForest with under sampled data - ROC  
+
+```{r}
+par(pty="s")
+aucrfu <- roc(test$DefaulterFlag, regrfu_class1[,2], 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE #, print.auc.y = 80, add = TRUE
+    )
+```
+
+### RandomForest with both over and under sampling - tuning  
+
+```{r}
+train <- both
+
+set.seed(123)
+tuneRF(train[,-14], train[,14], 
+       stepFactor = 2, plot = TRUE, ntreeTry = 300, improve = .01)
+```
+
+### RandomForest with both over and under sampling  
+
+```{r}
+set.seed(123)
+regrfb <- randomForest(DefaulterFlag ~ ., data = train, mtry = 6, ntree = 300)
+plot(regrfb)
+```
+
+### RandomForest with both over and under sampling - variable importance  
+
+```{r}
+varImpPlot(regrfo, sort = TRUE, n.var = 10, main="Variable Importance")
+```
+
+### RandomForest with both over and under sampling - validation  
+
+```{r}
+regrfb_class <- predict(regrfb, newdata = test, type = "class")
+regrfb_class1 <- predict(regrfb, newdata = test, type = "prob")
+cmrfb <- confusionMatrix(regrfb_class, test$DefaulterFlag, positive = "1")
+cmrfb
+```
+
+### RandomForest with both over and under sampling - ROC  
+
+```{r}
+par(pty="s")
+aucrfb <- roc(test$DefaulterFlag, regrfb_class1[,2], 
+    plot = TRUE, legacy.axes = TRUE, percent = TRUE, 
+    col = "#2c7fb8", lwd = 4, print.auc = TRUE #, print.auc.y = 80, add = TRUE
+    )
+```
+
+## Summary and comparion of alternative models - Question 3  
+
+```{r}
+summ3 <- data.frame("Model" = c("Q3. Decision Tree", "Q3. Random Forest", "Q3. Random Forest - Under", "Q3. Random Forest - Over", "Q3. Random Forest - Both"),
+                    "Accuracy" = 
+                      c(cmdt$overall[1], cmrf$overall[1], cmrfu$overall[1],                                    cmrfo$overall[1], cmrfb$overall[1]),
+                    "Sensitivity" = 
+                      c(cmdt$byClass[1], cmrf$byClass[1], cmrfu$byClass[1],
+                        cmrfo$byClass[1], cmrfb$byClass[1]),
+                    "Specificity" = 
+                      c(cmdt$byClass[2], cmrf$byClass[2], cmrfu$byClass[2],
+                        cmrfo$byClass[2], cmrfb$byClass[2]),
+                    "AUC" = c(aucdt$auc, aucrf$auc, aucrfu$auc, 
+                                aucrfo$auc, aucrfb$auc))
+
+knitr::kable(summ3)
+```
+
+## Conclusion - Question 3  
+
+The Random Forest model with under sampled data has the largest AUC. However, the Random Forest model without any resampling has the highest accuracy and sensitivty and only marginally smaller AUC.
+
+The Decision Tree model also has good accuracy, however its AUC is lower than the other models.
+
+The Decision Tree model with re-sampling can be further explored
+
+Of the models developed in this question, the Random Forest model without re-sampling is recommended.
+
+# Question 4. Based on the models constructed, suggest the necessary recommendations from your side as an analyst, so that the company can better assess the creditworthiness of its future/potential customers (5 Marks)
+
+### Summary of all models  
+
+```{r}
+summ <- rbind(summ1, summ2, summ3)
+knitr::kable(summ, digits = 3, caption = "Summary of models created in Questions 1, 2 and 3")
+```
+
+### Summary of all models - sorted by AUC descending  
+
+```{r}
+summ <- summ[with(summ, order(-AUC, -Accuracy, -Sensitivity, -Specificity)),]
+knitr::kable(summ, digits = 3, caption = "Summary of models created in Questions 1, 2 and 3, sorted by AUC")
+
+```
+
+### Recommendations  
+
+ * Based on AUC, the Alternative 1 or Alternative 2 Logistic Regression models developed in Question 2 are recommended. 
+ * The Alternative 1 Logistic regression model uses AGE as a variable in addition to all the recommended variables.
+ * The Alternative 2 Logistic regression model uses AGE as an independent variable and uses all the recommended independent variables except MTHINCTH (monthly income in thousands).
+ * The alternative 2 Logistic regression model has similar performance characteristics as the alternative 1 model but is more parsimonious as it uses one less independent variable.
+ * Although the alternative model 2 with over and both sampling have marginally bigger AUC, their accuracy and sensitivity is far below the models without re-sampling.
+ * A neural network based model should be tried to see if it gives better model parameters.
+ * Random forest model has the highest accuracy and sensitivity, however it is computationally expensive and has less AUC.
