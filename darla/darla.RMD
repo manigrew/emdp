@@ -1,0 +1,219 @@
+---
+title: "Darla"
+date: "29/03/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 12)
+options(scipen=10000)
+```
+
+```{r libs}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(kableExtra)
+
+options(knitr.table.format = "html") 
+#library(esquisse)
+```
+
+
+```{r load_data, eval=FALSE}
+
+setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
+
+dat <- read_excel("darla.xlsx")
+
+dat$lcecSiteId <- as.factor(dat$lcecSiteId)
+dat$eventTypeEnum <- as.factor(dat$eventTypeEnum)
+dat$queue_type <- as.factor(dat$queue_type)
+dat$secs <- dat$milliseconds / 1000
+
+dat <- filter(dat, processorId != -1)
+dat$processorId <- as.factor(as.character(dat$processorId))
+
+dat <- dat[,c("id", "lcecSiteId", "processorId", "eventTypeEnum", 
+              "scheduledFor", "executedAt", "secs", "queue_type" )]
+
+dat$delay_min <- (as.numeric(dat$executedAt - dat$scheduledFor)) / 60
+dat$sched_date <- format(dat$scheduledFor, format = '%Y/%m/%d')
+
+```
+
+# PREVIEW
+
+## First 10 rows
+
+```{r}
+head(dat)
+```
+
+## Summary of data
+
+```{r}
+kbl(summary(dat[,-1])) %>%
+  kable_paper("hover", full_width = F)
+```
+
+# BY PARTNER
+
+## Jobs by partner (count > 2000)
+```{r}
+
+
+by_site <- group_by(dat, lcecSiteId)
+summ <- summarise(by_site, count = n())
+#View(summ)
+```
+```{r fig.width=12}
+
+summ %>%
+  filter(count > 2000) %>%
+  arrange(count) %>%
+  ggplot() +
+  geom_col(aes(x = reorder(lcecSiteId, -count), y = count)) +
+  theme(axis.text.x = element_text(angle = 90)) 
+  
+```
+
+## Jobs by partner (secondary-darla)
+
+```{r}
+
+
+by_site_queue <- group_by(dat, lcecSiteId, queue_type)
+summ <- summarise(by_site_queue, count = n())
+#View(summ)
+```
+```{r fig.width=12}
+
+summ %>%
+  filter(queue_type == "secondary-darla", count > 300) %>%
+  arrange(count) %>%
+  ggplot() +
+  geom_col(aes(x = reorder(lcecSiteId, -count), y = count, fill = queue_type)) +
+  theme(axis.text.x = element_text(angle = 90)) 
+  
+```
+
+# BY EVENT TYPE
+
+## Jobs by eventType, queue_type
+
+```{r}
+by_event_type <- group_by(dat, eventTypeEnum, queue_type)
+summ <- summarise(by_event_type, count = n(), avg_secs = mean(secs), total_secs =sum(secs))
+summ %>%
+  #filter(ct > 2000) %>%
+  arrange(count) %>%
+  ggplot() +
+  geom_col(aes(y = reorder(eventTypeEnum, -count), x = count, fill = queue_type)) 
+  #facet_wrap(~queue_type) +
+  # + theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
+```
+
+## Average execution time by event type
+
+```{r}
+summ %>%
+  #filter(ct > 2000) %>%
+  arrange(count) %>%
+  ggplot() +
+  geom_col(aes(y = reorder(eventTypeEnum, -count), x = avg_secs, fill = queue_type)) 
+  #facet_wrap(~queue_type) +
+  # + theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) 
+
+```
+
+## Average execution time by event type (secondary-darla)
+
+```{r}
+summ %>%
+  filter(queue_type == "secondary-darla") %>%
+  arrange(count) %>%
+  ggplot() +
+  geom_col(aes(y = reorder(eventTypeEnum, -avg_secs), x = avg_secs, fill = queue_type))
+  #facet_wrap(~queue_type) +
+  # + theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) 
+
+```
+
+## Jobs by eventType, queue_type (log scale)
+
+
+```{r}
+by_event_type <- group_by(dat, eventTypeEnum, queue_type)
+summ <- summarise(by_event_type, count = n())
+summ %>%
+  #filter(ct > 2000) %>%
+  arrange(count) %>%
+  ggplot() +
+  geom_col(aes(y = reorder(eventTypeEnum, -count), x = log10(count), fill = queue_type)) +
+  #facet_wrap(~queue_type) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) 
+
+```
+
+# BY DATE
+
+## Average Delay by date
+
+```{r}
+by_date <- group_by(dat, sched_date)
+summ <- summarise(by_date, mdelay = mean(delay_min), sdelay = sum(delay_min))
+
+summ %>%
+  #filter(ct > 2000) %>%
+  arrange(mdelay) %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = mdelay), fill = "blue") +
+  #facet_wrap(~queue_type) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
+```
+
+
+```{r}
+by_date <- group_by(dat, sched_date, queue_type)
+summ <- summarise(by_date, mdelay = mean(delay_min), sdelay = sum(delay_min), count = n(), sum_secs = sum(secs))
+```
+
+## Average Delay by date (reports)
+
+
+```{r}
+### only reports
+summ %>%
+  filter(queue_type == "secondary-darla") %>%
+  arrange(mdelay) %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = mdelay), fill = "blue") +
+  #facet_wrap(~queue_type) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
+```
+
+## Count of secondary-darla jobs by date
+
+```{r}
+summ %>%
+  filter(queue_type == "secondary-darla") %>%
+  arrange(sched_date) %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = count), fill = "red") +
+  #facet_wrap(~queue_type) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) 
+
+```
+
+
+
+```{r}
+summ <- dat %>%
+  filter(queue_type == "secondary-darla") %>%
+  group_by(sched_date, eventTypeEnum) %>%
+  summarise()
+```
+
