@@ -1,18 +1,28 @@
 ---
 title: "Darla"
-date: "29/03/2021"
+date: "15/05/2021"
+author: "Manish Grewal"
 output:
   html_document: default
   pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 12)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 16)
 options(scipen=10000)
 ```
 
+<style type="text/css">
+.main-container {
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+
+
 ```{r libs}
-library(readxl)
+#library(readxl)
 library(ggplot2)
 library(dplyr)
 library(kableExtra)
@@ -44,20 +54,239 @@ dat$sched_date <- format(dat$scheduledFor, format = '%Y/%m/%d')
 
 ```
 
-# PREVIEW
 
-## First 10 rows
-
-```{r}
-head(dat)
-```
-
-## Summary of data
-
-```{r}
+```{r eval=FALSE}
 kbl(summary(dat[,-1])) %>%
   kable_paper("hover", full_width = F)
 ```
+
+
+```{r}
+plot_by_date <- function(x, y) {
+  
+  what <- gsub("_", " ", y)
+  title <- paste("By date:", what)
+  
+  p <- x %>%
+    ggplot(aes(x = sched_date)) +
+    geom_col(aes_string(y = y, fill = "sched_day")) +
+    theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) +
+    #scale_fill_manual(values = cbp1) +
+    xlab("Date") +
+    ylab(what) +
+    ggtitle(title)
+  
+  print(p)
+}
+
+
+#plot_new(summ_sec, "count")
+```
+
+```{r}
+# The palette with grey:
+cbp1 <- c("#999999", "#D55E00", "#56B4E9", "#009E73",
+          "#F0E442", "#0072B2", "#E69F00", "#CC79A7")
+
+plot_all <- function(x) {
+  plot_by_date(x, "average_delay_minutes")
+  plot_by_date(x, "average_execution_minutes")
+  plot_by_date(x, "total_delay_minutes")
+  plot_by_date(x, "total_execution_minutes")
+  plot_by_date(x, "count")
+}
+
+# summarise(average_delay_minutes = mean(delay_min), 
+#             total_delay_minutes = sum(delay_min),
+#             average_execution_minutes = mean(secs/60), 
+#             total_execution_minutes = sum(secs/60), 
+#             count = n())
+plot_avg_delay <- function(x) {
+  p <- x %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = average_delay_minutes, fill = sched_day)) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
+  print(p)
+}
+plot_avg_exec <- function(x) {
+  p <- x %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = average_execution_minutes, fill = sched_day)) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
+  print(p)
+}
+plot_tot_delay <- function(x) {
+  p <- x %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = total_delay_minutes, fill = sched_day)) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
+  print(p)
+}
+plot_tot_exec <- function(x) {
+  p <- x %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = total_execution_minutes, fill = sched_day)) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
+  print(p)
+}
+plot_count <- function(x) {
+  p <- x %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = count, fill = sched_day)) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
+  print(p)
+}
+
+cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+
+
+
+# BY DATE
+
+
+```{r by_date_main}
+by_date <- dat %>%
+  group_by(sched_date, sched_day)
+
+summ <- summarise(by_date, average_delay_minutes = mean(delay_min),
+            total_delay_minutes = sum(delay_min),
+            average_execution_minutes = mean(secs/60),
+            total_execution_minutes = sum(secs/60),
+            count = n())
+
+```
+
+## BY DATE - OVERALL
+
+### Average Delay by date (All queues)
+
+```{r}
+plot_all(summ)
+```
+
+#### Delay Outliers
+
+Huge delays on 2/28 and 4/4 are due to Sunday maintenance activities during which the queues were paused for longer duration. The data for these two dates are excluded from further analysis.
+
+```{r}
+by_date <- dat %>%
+  filter(!sched_date %in% c("2021/02/28", "2021/04/04")) %>%
+  group_by(sched_date, sched_day)
+
+summ <- summarise(by_date,average_delay_minutes = mean(delay_min), 
+            total_delay_minutes = sum(delay_min),
+            average_execution_minutes = mean(secs/60), 
+            total_execution_minutes = sum(secs/60), 
+            count = n())
+```
+
+
+### Average Delay by date (All queues) - 2
+
+```{r}
+plot_all(summ)
+```
+
+## Average Delay by date (Queue wise)
+
+
+```{r}
+
+summ_cri <- by_date %>%
+  filter(queue_type == "critical") %>%
+  summarise(average_delay_minutes = mean(delay_min), 
+            total_delay_minutes = sum(delay_min),
+            average_execution_minutes = mean(secs/60), 
+            total_execution_minutes = sum(secs/60), 
+            count = n())
+
+summ_sec <- by_date %>%
+  filter(queue_type == "secondary") %>%
+  summarise(average_delay_minutes = mean(delay_min), 
+            total_delay_minutes = sum(delay_min),
+            average_execution_minutes = mean(secs/60), 
+            total_execution_minutes = sum(secs/60), 
+            count = n())
+
+
+summ_ter <- by_date %>%
+  filter(queue_type == "tertiary") %>%
+  summarise(average_delay_minutes = mean(delay_min), 
+            total_delay_minutes = sum(delay_min),
+            average_execution_minutes = mean(secs/60), 
+            total_execution_minutes = sum(secs/60), 
+            count = n())
+```
+
+### Average Delay by date (Critical queue)
+
+
+```{r}
+plot_all(summ_cri)
+```
+
+### Average Delay by date (Secondary queue)
+
+
+```{r}
+plot_all(summ_sec)
+```
+
+### Average Delay by date (Tertiary queue)
+
+```{r}
+
+summ_ter <- summ_ter %>%
+  filter(!sched_date %in% c("2021/05/02", "2021/04/03"))
+
+plot_all(summ_ter)
+
+
+```
+
+## REPORTS
+
+### Average Delay by date (reports)
+
+
+```{r}
+summ <- by_date %>%
+  filter(eventTypeEnum %in% c("reportNow", "reportDeliver")) %>%
+  summarise(average_delay_minutes = mean(delay_min), 
+            total_delay_minutes = sum(delay_min),
+            average_execution_minutes = mean(secs/60), 
+            total_execution_minutes = sum(secs/60), 
+            count = n())
+```
+
+
+```{r}
+plot_all(summ)
+```
+
+
+```{r}
+knitr::knit_exit() 
+```
+
+
+## Count of secondary jobs by date
+
+```{r}
+summ %>%
+  filter(queue_type == "secondary") %>%
+  arrange(sched_date) %>%
+  ggplot(aes(x = sched_date)) +
+  geom_col(aes(y = count), fill = "red") +
+  #facet_wrap(~queue_type) +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) 
+
+```
+
+
 
 # BY PARTNER
 
@@ -69,6 +298,7 @@ by_site <- group_by(dat, lcecSiteId)
 summ <- summarise(by_site, count = n())
 #View(summ)
 ```
+
 ```{r fig.width=12}
 
 summ %>%
@@ -80,7 +310,7 @@ summ %>%
   
 ```
 
-## Jobs by partner (secondary-darla)
+## Jobs by partner (secondary)
 
 ```{r}
 
@@ -92,11 +322,11 @@ summ <- summarise(by_site_queue, count = n())
 ```{r fig.width=12}
 
 summ %>%
-  filter(queue_type == "secondary-darla", count > 300) %>%
+  filter(queue_type == "secondary", count > 300) %>%
   arrange(count) %>%
   ggplot() +
   geom_col(aes(x = reorder(lcecSiteId, -count), y = count, fill = queue_type)) +
-  theme(axis.text.x = element_text(angle = 90)) 
+  theme(axis.text.x = element_text(angle = 45)) 
   
 ```
 
@@ -129,11 +359,11 @@ summ %>%
 
 ```
 
-## Average execution time by event type (secondary-darla)
+## Average execution time by event type (secondary)
 
 ```{r}
 summ %>%
-  filter(queue_type == "secondary-darla") %>%
+  filter(queue_type == "secondary") %>%
   arrange(count) %>%
   ggplot() +
   geom_col(aes(y = reorder(eventTypeEnum, -avg_secs), x = avg_secs, fill = queue_type))
@@ -187,7 +417,7 @@ summ <- summarise(by_date, mdelay = mean(delay_min), sdelay = sum(delay_min), co
 ```{r}
 ### only reports
 summ %>%
-  filter(queue_type == "secondary-darla") %>%
+  filter(queue_type == "secondary") %>%
   arrange(mdelay) %>%
   ggplot(aes(x = sched_date)) +
   geom_col(aes(y = mdelay), fill = "blue") +
@@ -195,11 +425,11 @@ summ %>%
   theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7))
 ```
 
-## Count of secondary-darla jobs by date
+## Count of secondary jobs by date
 
 ```{r}
 summ %>%
-  filter(queue_type == "secondary-darla") %>%
+  filter(queue_type == "secondary") %>%
   arrange(sched_date) %>%
   ggplot(aes(x = sched_date)) +
   geom_col(aes(y = count), fill = "red") +
@@ -212,8 +442,39 @@ summ %>%
 
 ```{r}
 summ <- dat %>%
-  filter(queue_type == "secondary-darla") %>%
+  filter(queue_type == "secondary") %>%
   group_by(sched_date, eventTypeEnum) %>%
   summarise()
 ```
 
+
+
+```{r include=FALSE}
+summary(dat$scheduledFor)
+
+dat1 <- dat %>% 
+  filter(queue_type == "secondary")
+
+dat1 <- droplevels(dat1)
+summary(dat1)
+#dat1 %>%
+#  ggplot() +
+#  geom_boxplot(aes(y = "", x = delay_min)) +
+#  facet_wrap(~eventTypeEnum)
+
+```
+
+
+
+## Count of secondary jobs by date
+
+```{r}
+# summ %>%
+#   filter(queue_type == "secondary") %>%
+#   arrange(sched_date) %>%
+#   ggplot(aes(x = sched_date)) +
+#   geom_col(aes(y = count), fill = eventTypeEnum) +
+#   #facet_wrap(~queue_type) +
+#   theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) 
+
+```
