@@ -1,3 +1,5 @@
+.R*
 darla.xlsx
 *.xlsx
 *.csv
+*.csv.bak
