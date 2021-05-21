@@ -1,10 +1,16 @@
 ---
 title: "Darla"
-date: "15/05/2021"
 author: "Manish Grewal"
+date: "15/05/2021"
 output:
-  html_document: default
+  
+  html_document: 
+    theme: cerulean
+    toc: true
+    toc_depth: 3
+  word_document: default
   pdf_document: default
+  always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
@@ -14,13 +20,12 @@ st <- proc.time()
 ```
 
 <style type="text/css">
-.main-container {
-  max-width: 1800px;
-  margin-left: auto;
-  margin-right: auto;
-}
+ .main-container {
+   max-width: 1800px;
+   margin-left: auto;
+   margin-right: auto;
+ }
 </style>
-
 
 
 ```{r libs}
@@ -34,30 +39,103 @@ library(DT)
 #library(esquisse)
 ```
 
-
-```{r load_data, eval=TRUE}
-
+```{r load_data, eval=FALSE}
 setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
+
+inactive_sites <- read_excel("RFC-2373-inactive-site-list.xlsx")
+
+events_critical <-
+  c(
+    "welcomeEmail",
+    "reminderEmail",
+    "driveAssignment",
+    "eptest1",
+    "drive assignment retry",
+    "reviewerReminderEmail",
+    "reminder email series",
+    "campaignDailyMailDelivery",
+    "thankYouEmail",
+    "campaignHourlyMailDelivery",
+    "correctSubmissionEmail"
+  )
+events_secondary <-
+  c(
+    "reportDeliver",
+    "driveAssignmentValidate",
+    "eptest2",
+    "notifyNearStart",
+    "notifyNearDue",
+    "notifyNearClose",
+    "notifyClosed",
+    "validateAnnouncementRecipients",
+    "validateReminderRecipients",
+    "bulkload poll",
+    "reportNow",
+    "driveAssignmentValidateReport",
+    "validateReviewerReminderRecipients",
+    "validateCorrectSubmissionRecipients",
+    "reminderEmailRetry",
+    "welcomeEmailRetry",
+    "reviewerReminderEmailRetry",
+    "correctSubmissionEmailRetry",
+    "validateAnnouncementRecipientsUseAssignmentRules",
+    "validateReminderRecipientsUseAssignmentRules",
+    "VariableWelcomeEmailRetry",
+    "VariableReminderEmailRetry",
+    "VariableReviewerReminderEmailRetry",
+    "VariableCorrectSubmissionReminderEmailRetry",
+    "FailedEmailDeliveryReport",
+    "CumulativeEmailRetry",
+    "supervisorEmail"
+  )
+events_tertiary <-
+  c(
+    "lyris poll",
+    "lyris gc",
+    "monitor",
+    "dailyAdminEmail",
+    "unitTest",
+    "dailyLogRotation",
+    "computeCampaignProgress",
+    "computeLicenseReports",
+    "eptest3",
+    "ContractModulesExceeded"
+  )
 
 dat1 <- read.csv("eventmetrics1.csv")
 dat2 <- read.csv("eventmetrics2.csv")
-
-inactive_sites <- read_excel("RFC-2373-inactive-site-list.xlsx")
 
 dat <- rbind(dat1, dat2)
 dat1 <- dat2 <- NULL
 
 # drop unused cols
-dat <- dat[, c("id", "lcecSiteId", "processorId", "campaignId", "eventTypeEnum", 
-              "scheduledFor", "executedAt", "milliseconds" )]
+dat <-
+  dat[, c(
+    "id",
+    "lcecSiteId",
+    "processorId",
+    "campaignId",
+    "eventTypeEnum",
+    "scheduledFor",
+    "executedAt",
+    "milliseconds"
+  )]
 
-
+###############
 # Fix date cols
-dat$executedAt <- gsub("^(.{10} [0-9][0-9]:[0-9][0-9])$", "\\1:00", dat$executedAt)
-dat$executedAt <- strptime(dat$executedAt, format = "%d-%m-%Y %H:%M:%S", tz = "America/Los_Angeles")
+###############
+# Add :00 if seconds part missing
+dat$executedAt <-
+  gsub("^(.{10} [0-9][0-9]:[0-9][0-9])$", "\\1:00", dat$executedAt)
+dat$executedAt <-
+  strptime(dat$executedAt, format = "%d-%m-%Y %H:%M:%S", tz = "America/Los_Angeles")
 
-dat$scheduledFor <- gsub("^(.{10} [0-9][0-9]:[0-9][0-9])$", "\\1:00", dat$scheduledFor)
-dat$scheduledFor <- strptime(dat$scheduledFor, format = "%d-%m-%Y %H:%M:%S", tz = "America/Los_Angeles")
+# Add :00 if seconds part missing
+dat$scheduledFor <-
+  gsub("^(.{10} [0-9][0-9]:[0-9][0-9])$", "\\1:00", dat$scheduledFor)
+dat$scheduledFor <-
+  strptime(dat$scheduledFor, format = "%d-%m-%Y %H:%M:%S", tz = "America/Los_Angeles")
+#######################
 
 
 ## add index col
@@ -67,18 +145,15 @@ dat <- dat %>%
 #######################
 # add queue_type col
 #######################
-events_critical <- c("welcomeEmail", "reminderEmail", "driveAssignment", "eptest1", "drive assignment retry", "reviewerReminderEmail", "reminder email series", "campaignDailyMailDelivery", "thankYouEmail", "campaignHourlyMailDelivery", "correctSubmissionEmail")
-events_secondary <- c("reportDeliver", "driveAssignmentValidate", "eptest2", "notifyNearStart", "notifyNearDue", "notifyNearClose", "notifyClosed", "validateAnnouncementRecipients", "validateReminderRecipients", "bulkload poll", "reportNow", "driveAssignmentValidateReport", "validateReviewerReminderRecipients", "validateCorrectSubmissionRecipients", "reminderEmailRetry", "welcomeEmailRetry", "reviewerReminderEmailRetry", "correctSubmissionEmailRetry", "validateAnnouncementRecipientsUseAssignmentRules", "validateReminderRecipientsUseAssignmentRules", "VariableWelcomeEmailRetry", "VariableReminderEmailRetry", "VariableReviewerReminderEmailRetry", "VariableCorrectSubmissionReminderEmailRetry", "FailedEmailDeliveryReport", "CumulativeEmailRetry", "supervisorEmail")
-events_tertiary <- c("lyris poll", "lyris gc", "monitor", "dailyAdminEmail", "unitTest", "dailyLogRotation", "computeCampaignProgress", "computeLicenseReports", "eptest3", "ContractModulesExceeded")
-
 dat$queue_type <- case_when(
   dat$eventTypeEnum %in% events_critical ~ "critical",
   dat$eventTypeEnum %in% events_secondary ~ "secondary",
-  dat$eventTypeEnum %in% events_tertiary ~ "tertiary")
+  dat$eventTypeEnum %in% events_tertiary ~ "tertiary"
+)
 
 # Queue changed for this job from secondary to tertiary on 18th April
-dat$queue_type[dat$eventTypeEnum == "driveAssignmentValidateReport" & dat$scheduledFor >= "2021-04-18 12:00:00"] <- "tertiary"
-
+dat$queue_type[dat$eventTypeEnum == "driveAssignmentValidateReport" &
+                 dat$scheduledFor >= "2021-04-18 12:00:00"] <- "tertiary"
 #######################
 
 dat$lcecSiteId <- as.factor(dat$lcecSiteId)
@@ -94,17 +169,26 @@ dat$sched_date <- format(dat$scheduledFor, format = '%Y/%m/%d')
 dat$sched_time <- format(dat$scheduledFor, format = '%H:%M:%S')
 #dat$sched_daydate <- format(dat$scheduledFor, format = '%Y/%m/%d %a')
 dat$sched_day <- format(dat$scheduledFor, format = '%a')
-dat$sched_day <- factor(dat$sched_day, ordered = TRUE,
-                        levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+dat$sched_day <- factor(
+  dat$sched_day,
+  ordered = TRUE,
+  levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+)
+dat$sched_time_30 <- paste0(
+  substr(dat$sched_time, 1, 3),
+  ifelse(as.integer(substr(dat$sched_time, 4, 5)) >= 30, "30", "00")
+  )
 
 dat$active <- ifelse(dat$lcecSiteId %in% inactive_sites$Site, "inactive", "active")
 
 idx_rel1 <- which(dat$scheduledFor == "2021/04/18 12:00:00")[1]
 idx_rel2 <- which(dat$scheduledFor == "2021/05/06 09:00:00")[1]
 
-dat$period <- c(rep("Before", idx_rel1),
-                rep("Release1", idx_rel2 - idx_rel1),
-                rep("Release2", nrow(dat) - idx_rel2))
+dat$period <- c(
+  rep("Before", idx_rel1),
+  rep("Release1", idx_rel2 - idx_rel1),
+  rep("Release2", nrow(dat) - idx_rel2)
+)
 
 ```
 
@@ -141,7 +225,8 @@ plot_by_date <- function(x, y, desc) {
     ggtitle(title) +
     geom_vline(aes(xintercept = c(idx_rel1), color="Rel1"), size=1, linetype="dashed") +
     geom_vline(aes(xintercept = c(idx_rel2), color="Rel2"), size=1, linetype="dashed") +
-    scale_color_manual(name = "Release", values = c(Rel1 = "blue", Rel2 = "black"))
+    scale_color_manual(name = "Release", values = c(Rel1 = "blue", Rel2 = "black")) +
+    scale_x_discrete(breaks = x$sched_date[seq(1, nrow(x), 2)])
 
   print(p)
 }
@@ -223,7 +308,7 @@ summ_period %>%
   ggtitle(title) +
   scale_fill_brewer(palette = "Dark2")
 
-
+  
 plot_by_period(summ_period, "critical")
 plot_by_period(summ_period, "secondary")
 plot_by_period(summ_period, "tertiary")
@@ -247,6 +332,94 @@ names(summ_period) <- gsub("_minutes", "", names(summ_period))
 datatable(summ_period, filter = 'top', caption = "IMPACT OF RELEASES (minutes)")
 ```
 
+# BY TIME OF DAY
+
+```{r}
+by_queue_day_time <- dat %>%
+  group_by(queue_type, sched_day, sched_time_30)
+
+summ1 <- by_queue_day_time %>%
+  summarise(average_delay_minutes = mean(delay_min), count = n())
+```
+
+## COUNT OF JOBS BY TIME OF DAY
+
+```{r fig.height=8}
+title <- "Count of jobs by time of day"
+print(title)
+summ1 %>%
+  ggplot(aes(x = sched_time_30, y = count)) +
+  geom_col(aes(fill = sched_day), position = "dodge") +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) +
+  facet_wrap( ~ queue_type, ncol = 1) +
+  xlab("Scheduled Time") +
+  ggtitle(title)
+
+```
+
+
+## AVERAGE DELAY BY TIME OF DAY
+
+```{r fig.height=8}
+title <- "Average delay by time of day"
+print(title)
+summ1 %>%
+  ggplot(aes(x = sched_time_30, y = average_delay_minutes)) +
+  geom_col(aes(fill = sched_day), position = "dodge") +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) +
+  facet_wrap( ~ queue_type, ncol = 1) +
+  xlab("Scheduled Time") +
+  ylab("average delay minutes") +
+  ggtitle(title)
+
+```
+
+## IMPACT OF RELEASES BY TIME OF DAY - AVERAGE DELAY
+
+```{r}
+by_period_time <- dat %>%
+  group_by(period, queue_type, sched_day, sched_time_30)
+
+summ <- by_period_time %>%
+  summarise(count = n(), average_delay_minutes = mean(delay_min))
+```
+
+
+```{r fig.height=9}
+title <- "Impact of releases - Average delay by time of day"
+print(title)
+summ %>%
+  ggplot(aes(x = sched_time_30, y = average_delay_minutes)) +
+  geom_col(aes(fill = sched_day), position = "dodge") +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) +
+  scale_x_discrete(breaks = unique(summ1$sched_time_30)[seq(1, length(d), 2)]) +
+  facet_grid(period ~ queue_type) +
+  xlab("Scheduled Time") +
+  ggtitle(title)
+```
+
+## IMPACT OF RELEASES BY TIME OF DAY - AVERAGE DELAY - SECONDARY QUEUE
+
+
+```{r fig.height=8}
+title <- "Impact of releases - Average delay by time of day - secondary queue"
+print(title)
+summ %>%
+  filter(queue_type == "secondary") %>%
+  ggplot(aes(x = sched_time_30, y = average_delay_minutes)) +
+  geom_col(aes(fill = sched_day), position = "dodge") +
+  theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) +
+  scale_x_discrete(breaks = unique(summ1$sched_time_30)[seq(1, length(d), 1)]) +
+  facet_wrap(period ~ queue_type, ncol = 1) +
+  xlab("Scheduled Time") +
+  ggtitle(title)
+```
+
+## SUMMARY - IMPACT OF RELEASES BY TIME OF DAY
+
+```{r}
+datatable(summ_period, filter = 'top', caption = "IMPACT OF RELEASES (minutes)")
+```
 
 
 # BY DATE
