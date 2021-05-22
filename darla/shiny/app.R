@@ -2,15 +2,11 @@ library(shiny)
 library(dplyr)
 library(ggplot2)
 
-
-
-
 events_critical <- c( "welcomeEmail", "reminderEmail", "driveAssignment", "eptest1", "drive assignment retry", "reviewerReminderEmail", "reminder email series", "campaignDailyMailDelivery", "thankYouEmail", "campaignHourlyMailDelivery", "correctSubmissionEmail")
 events_secondary <- c("reportDeliver", "driveAssignmentValidate", "eptest2", "notifyNearStart", "notifyNearDue", "notifyNearClose", "notifyClosed", "validateAnnouncementRecipients", "validateReminderRecipients", "bulkload poll", "reportNow", "driveAssignmentValidateReport", "validateReviewerReminderRecipients", "validateCorrectSubmissionRecipients", "reminderEmailRetry", "welcomeEmailRetry", "reviewerReminderEmailRetry", "correctSubmissionEmailRetry", "validateAnnouncementRecipientsUseAssignmentRules", "validateReminderRecipientsUseAssignmentRules", "VariableWelcomeEmailRetry", "VariableReminderEmailRetry", "VariableReviewerReminderEmailRetry", "VariableCorrectSubmissionReminderEmailRetry", "FailedEmailDeliveryReport", "CumulativeEmailRetry", "supervisorEmail")
 events_tertiary <- c("lyris poll", "lyris gc", "monitor", "dailyAdminEmail", "unitTest", "dailyLogRotation", "computeCampaignProgress", "computeLicenseReports", "eptest3", "ContractModulesExceeded")
 
 setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
-
 
 #inactive_sites <- read_excel("RFC-2373-inactive-site-list.xlsx")
 
@@ -97,7 +93,6 @@ dat$sched_time_30 <- paste0(
 dat %>% 
     filter(sched_date != "2021/04/08")
 
-
 proc.time() - st
 
 by_date <- dat %>%
@@ -148,7 +143,7 @@ ui <- fluidPage(
     ),
     
     # Show a plot of the generated distribution
-    plotOutput("date_plot")
+    plotOutput("date_plot", height = 8)
 )
 
 
@@ -166,7 +161,7 @@ server <- function(input, output) {
                 max_delay_minutes = max(delay_min),
                 count = n()
             )
-        plot_by_date(summ, input$stat, "Stat")
+        plot_by_date(summ, input$stat, paste(queue_type, '-', stat))
     })
 }
 
