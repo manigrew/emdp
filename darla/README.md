@@ -1,26 +1,26 @@
-Analyze the job execution data from darla application
+## Analyze the job execution data from darla application
 
-app.R:
+#### app.R:  
 	- shiny app
 
-csvs:
+#### csvs:  
 	- csvs of data
 
-darla.RMD:
+#### darla.RMD:  
 	- rmarkdwon to generate report, reads dat.RDS
 
-darla.html:
+#### darla.html:  
 	- the report output of darla.RMD
 
-dat.RDS:
+#### dat.RDS:  
 	- the wrangled data structure prepared from csvs by run.R
 
-reports:
+#### reports:  
 	- saved point in time copies of darla.html
 
-run.R:
+#### prep.R:  
 	- read data from csvs, wrangle and save in dat.RDS
 
-RFC-2373-inactive-site-list.xlsx:
+#### RFC-2372-inactive-site-list.xlsx:  
 	- supplementary data
 
