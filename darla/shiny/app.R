@@ -3,9 +3,21 @@ library(shinyWidgets)
 library(dplyr)
 library(ggplot2)
 
+setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
+
 dat <- readRDS("dat.RDS")
 by_date <- dat %>%
-    group_by(sched_date, sched_day)
+    group_by(queue_type, sched_date, sched_day)
+
+summ <- by_date %>%
+    summarise(
+        average_delay_minutes = mean(delay_min),
+        total_delay_minutes = sum(delay_min),
+        average_execution_minutes = mean(secs / 60),
+        total_execution_minutes = sum(secs / 60),
+        max_delay_minutes = max(delay_min),
+        count = n()
+    )
 
 min_date <- as.Date(dat$scheduledFor[1])
 max_date <- as.Date(dat$scheduledFor[nrow(dat)])
@@ -75,6 +87,8 @@ ui <- fluidPage(
     
     # Show a plot
     plotOutput("date_plot", height = "600"),
+    
+    dataTableOutput("summ_by_date")
 )
 
 
@@ -114,19 +128,11 @@ server <- function(input, output, session) {
         )
     })
         
-    summ <- reactive({
-        summ <- by_date %>%
+    summ_by_date <- reactive({
+        summ %>%
             filter(queue_type == queue_type_in()) %>%
             filter(!sched_day %in% exclude_days()) %>%
-            filter(!sched_date %in% exclude_dates()) %>%
-            summarise(
-                average_delay_minutes = mean(delay_min),
-                total_delay_minutes = sum(delay_min),
-                average_execution_minutes = mean(secs / 60),
-                total_execution_minutes = sum(secs / 60),
-                max_delay_minutes = max(delay_min),
-                count = n()
-            )
+            filter(!sched_date %in% exclude_dates())
     })
     
     output$date_plot <- renderPlot({
@@ -134,11 +140,13 @@ server <- function(input, output, session) {
         print(paste("Inputs: exclude days", toString(exclude_days())))
         print(paste("Inputs: exclude dates", toString(exclude_dates())))
  
-        plot_by_date(summ(), stat(), title())
+        plot_by_date(summ_by_date(), stat(), title())
     })
     
     output$mysession = renderPrint({c("<pre>", session, "</pre>")})
     #print(session)
+    
+    output$summ_by_date <- renderDataTable(summ_by_date())
 }
 
 # Run the application 
