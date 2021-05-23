@@ -5,6 +5,8 @@ library(ggplot2)
 
 setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
 
+events = readRDS("events.RDS")
+
 dat <- readRDS("dat.RDS")
 by_date <- dat %>%
     group_by(queue_type, sched_date, sched_day)
@@ -25,7 +27,7 @@ max_date <- as.Date(dat$scheduledFor[nrow(dat)])
 plot_by_date <- function(x, y, desc) {
         
     what <- gsub("_", " ", y)
-    title <- paste("By date:", what, "(", desc, ")")
+    title <- paste("By date:", what, desc)
     
     print(title)
     
@@ -69,6 +71,31 @@ ui <- fluidPage(
         choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
     ),
     
+    conditionalPanel(
+        condition = "input.queue_type == 'critical'", 
+        checkboxGroupInput(
+        "job_types_cri",
+        "Include only job types",
+        choices = events$critical,
+        inline = TRUE
+    )),    
+    conditionalPanel(
+        condition = "input.queue_type == 'secondary'", 
+        checkboxGroupInput(
+            "job_types_sec",
+            "Include only job types",
+            choices = events$secondary,
+            inline = TRUE
+        )),    
+    conditionalPanel(
+        condition = "input.queue_type == 'tertiary'", 
+        checkboxGroupInput(
+            "job_types_ter",
+            "Include only job types",
+            choices = events$tertiary,
+            inline = TRUE
+        )),    
+    
     checkboxGroupInput(
         "exclude_days",
         "Exclude day of week",
@@ -104,7 +131,7 @@ server <- function(input, output, session) {
     
     exclude_days <- reactive({
         exclude_days <- input$exclude_days
-        if(length(input$exclude_days) > 6) exclude_days <- ""
+        if(length(exclude_days) > 6) exclude_days <- ""
         exclude_days
     })
 
@@ -112,34 +139,64 @@ server <- function(input, output, session) {
         format(input$exclude_dates, "%Y/%m/%d")
     })
     
+    job_types <- reactive({
+        if(queue_type_in() == "critical") 
+            input$job_types_cri
+        else if(queue_type_in() == "secondary") 
+            input$job_types_sec
+        else if(queue_type_in() == "tertiary") 
+            input$job_types_ter
+    })
+    
     title <- reactive({
-        paste0(
-            queue_type_in(),
+        paste0("\nQueue:", queue_type_in(),
             ifelse(
                 toString(exclude_days()) != "",
-                paste(", excluded day(s)", toString(exclude_days())),
+                paste("\nExcluded days:", toString(exclude_days())),
                 ""
             ),
             ifelse(
                 exclude_dates() != "NULL",
-                paste(", excluded date(s):", toString(exclude_dates())),
+                paste("\nExcluded dates:", toString(exclude_dates())),
+                ""
+            ),
+            ifelse(
+                job_types() != "NULL",
+                paste("\nJob types:", toString(job_types())),
                 ""
             )
         )
     })
         
     summ_by_date <- reactive({
+        if(!is.null(job_types())) {
+            print("filtering by job_types")
+            summ <- by_date %>%
+                filter( eventTypeEnum %in% job_types()) %>%
+                group_by(queue_type, sched_date, sched_day) %>%
+                summarise(
+                    average_delay_minutes = mean(delay_min),
+                    total_delay_minutes = sum(delay_min),
+                    average_execution_minutes = mean(secs / 60),
+                    total_execution_minutes = sum(secs / 60),
+                    max_delay_minutes = max(delay_min),
+                    count = n()
+                )
+        }
+        
         summ %>%
             filter(queue_type == queue_type_in()) %>%
             filter(!sched_day %in% exclude_days()) %>%
-            filter(!sched_date %in% exclude_dates())
+            filter(!sched_date %in% exclude_dates()) #%>%
+            
     })
     
     output$date_plot <- renderPlot({
         print(paste("Inputs:", queue_type_in(), stat()))
         print(paste("Inputs: exclude days", toString(exclude_days())))
         print(paste("Inputs: exclude dates", toString(exclude_dates())))
- 
+        print(paste("Inputs: job types", toString(job_types())))
+        
         plot_by_date(summ_by_date(), stat(), title())
     })
     
