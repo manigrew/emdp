@@ -192,6 +192,10 @@ dat$period <- c(
 
 ```
 
+```{r}
+dat = readRDS("dat.RDS")
+```
+
 
 ```{r eval=FALSE}
 #kbl(summary(dat[,-1])) %>%
@@ -392,7 +396,7 @@ summ %>%
   ggplot(aes(x = sched_time_30, y = average_delay_minutes)) +
   geom_col(aes(fill = sched_day), position = "dodge") +
   theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) +
-  scale_x_discrete(breaks = unique(summ1$sched_time_30)[seq(1, length(d), 2)]) +
+  scale_x_discrete(breaks = unique(summ$sched_time_30)[seq(1, length(summ$sched_time_30), 2)]) +
   facet_grid(period ~ queue_type) +
   xlab("Scheduled Time") +
   ggtitle(title)
@@ -409,7 +413,7 @@ summ %>%
   ggplot(aes(x = sched_time_30, y = average_delay_minutes)) +
   geom_col(aes(fill = sched_day), position = "dodge") +
   theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) +
-  scale_x_discrete(breaks = unique(summ1$sched_time_30)[seq(1, length(d), 1)]) +
+  scale_x_discrete(breaks = unique(summ$sched_time_30)[seq(1, length(summ$sched_time_30), 1)]) +
   facet_wrap(period ~ queue_type, ncol = 1) +
   xlab("Scheduled Time") +
   ggtitle(title)
