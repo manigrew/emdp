@@ -68,7 +68,8 @@ ui <- fluidPage(
     selectInput(
         "stat",
         "Select statistic",
-        choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
+        #choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
+        choices = names(summ)[-(1:3)]
     ),
     
     uiOutput(
