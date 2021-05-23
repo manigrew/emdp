@@ -5,9 +5,10 @@ library(ggplot2)
 
 setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
 
+# load data
 events = readRDS("events.RDS")
-
 dat <- readRDS("dat.RDS")
+
 by_date <- dat %>%
     group_by(queue_type, sched_date, sched_day)
 
@@ -25,7 +26,6 @@ min_date <- as.Date(dat$scheduledFor[1])
 max_date <- as.Date(dat$scheduledFor[nrow(dat)])
 
 plot_by_date <- function(x, y, desc) {
-        
     what <- gsub("_", " ", y)
     title <- paste("By date:", what, desc)
     
@@ -53,8 +53,8 @@ plot_by_date <- function(x, y, desc) {
     print(p)
 }
 
-
-# Define UI for application that draws a histogram
+###########################
+# Define UI for application
 ui <- fluidPage(
     # Application title
     titlePanel("Darla Jobs Analysis"),
@@ -71,30 +71,9 @@ ui <- fluidPage(
         choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
     ),
     
-    conditionalPanel(
-        condition = "input.queue_type == 'critical'", 
-        checkboxGroupInput(
-        "job_types_cri",
-        "Include only job types",
-        choices = events$critical,
-        inline = TRUE
-    )),    
-    conditionalPanel(
-        condition = "input.queue_type == 'secondary'", 
-        checkboxGroupInput(
-            "job_types_sec",
-            "Include only job types",
-            choices = events$secondary,
-            inline = TRUE
-        )),    
-    conditionalPanel(
-        condition = "input.queue_type == 'tertiary'", 
-        checkboxGroupInput(
-            "job_types_ter",
-            "Include only job types",
-            choices = events$tertiary,
-            inline = TRUE
-        )),    
+    uiOutput(
+        "job_types",
+    ),
     
     checkboxGroupInput(
         "exclude_days",
@@ -119,15 +98,15 @@ ui <- fluidPage(
 )
 
 
-
-# Define server logic required to draw a histogram
+#####################
+# Define server logic
 server <- function(input, output, session) {
     print("")
     print("##################################")
     
-    
     queue_type_in <- reactive({ input$queue_type })
     stat <- reactive({ input$stat })
+    job_types <- reactive({ input$job_types })
     
     exclude_days <- reactive({
         exclude_days <- input$exclude_days
@@ -139,17 +118,13 @@ server <- function(input, output, session) {
         format(input$exclude_dates, "%Y/%m/%d")
     })
     
-    job_types <- reactive({
-        if(queue_type_in() == "critical") 
-            input$job_types_cri
-        else if(queue_type_in() == "secondary") 
-            input$job_types_sec
-        else if(queue_type_in() == "tertiary") 
-            input$job_types_ter
-    })
-    
     title <- reactive({
         paste0("\nQueue:", queue_type_in(),
+            ifelse(
+                   job_types() != "NULL",
+                   paste("\nJob types:", toString(job_types())),
+                   ""
+            ),
             ifelse(
                 toString(exclude_days()) != "",
                 paste("\nExcluded days:", toString(exclude_days())),
@@ -158,11 +133,6 @@ server <- function(input, output, session) {
             ifelse(
                 exclude_dates() != "NULL",
                 paste("\nExcluded dates:", toString(exclude_dates())),
-                ""
-            ),
-            ifelse(
-                job_types() != "NULL",
-                paste("\nJob types:", toString(job_types())),
                 ""
             )
         )
@@ -189,6 +159,13 @@ server <- function(input, output, session) {
             filter(!sched_day %in% exclude_days()) %>%
             filter(!sched_date %in% exclude_dates()) #%>%
             
+    })
+    
+    output$job_types <- renderUI({
+        checkboxGroupInput("job_types", 
+                           "Filter by job type",
+                           choices = events[[queue_type_in()]],
+                           inline = TRUE)
     })
     
     output$date_plot <- renderPlot({
