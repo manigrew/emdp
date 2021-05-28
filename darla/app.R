@@ -59,38 +59,36 @@ ui <- fluidPage(
     # Application title
     titlePanel("Darla Jobs Analysis"),
     
-    # Sidebar with a slider input for number of bins
-    selectInput(
-        "queue_type",
-        "Select Queue",
-        choices = c("critical", "secondary", "tertiary")
-    ),
-    selectInput(
-        "stat",
-        "Select statistic",
-        #choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
-        choices = names(summ)[-(1:3)]
-    ),
+    fluidRow(
+        column(4,
+            selectInput("queue_type", "Select Queue",
+                choices = c("critical", "secondary", "tertiary")
+        )),
+        column(4,
+            selectInput("stat", "Select statistic",
+                #choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
+                choices = names(summ)[-(1:3)]
+        )),
     
-    uiOutput(
-        "job_types",
-    ),
+        column(4,
+            uiOutput(
+                "job_types",
+        )),
     
-    checkboxGroupInput(
-        "exclude_days",
-        "Exclude day of week",
-        choices = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-        inline = TRUE
-    ),
+        column(4,
+            selectInput("exclude_days", "Exclude day of week",
+                choices = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+                multiple = TRUE
+        )),
     
-    airDatepickerInput(
-        "exclude_dates",
-        "Exclude dates",
-        minDate = min_date,
-        maxDate = max_date,
-        multiple = TRUE,
-        dateFormat = 'yyyy/mm/dd'
-       ),
+        column(4,
+            airDatepickerInput("exclude_dates", "Exclude dates",
+                minDate = min_date,
+                maxDate = max_date,
+                multiple = TRUE,
+                dateFormat = 'yyyy/mm/dd'
+        ))
+    ),
     
     # Show a plot
     plotOutput("date_plot", height = "600"),
@@ -163,10 +161,10 @@ server <- function(input, output, session) {
     })
     
     output$job_types <- renderUI({
-        checkboxGroupInput("job_types", 
+        selectInput("job_types", 
                            "Filter by job type",
                            choices = events[[queue_type_in()]],
-                           inline = TRUE)
+                           multiple = TRUE)
     })
     
     output$date_plot <- renderPlot({
