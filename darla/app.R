@@ -5,17 +5,9 @@ library(ggplot2)
 
 setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
 
-DEBUG <- 0
-if(DEBUG)
-    options(shiny.reactlog = TRUE)
-
 # load data
 events = readRDS("events.RDS")
-dat <- readRDS("dat.RDS") 
-
-# reduce dataset for dev
-if(DEBUG)
-    dat <- dat[1:300000,] 
+dat <- readRDS("dat.RDS")
 
 by_date <- dat %>%
     group_by(queue_type, sched_date, sched_day)
@@ -61,62 +53,47 @@ plot_by_date <- function(x, y, desc) {
     print(p)
 }
 
-summ_small_headers <- function(x) {
-    names(x) <- gsub("_minutes", "", names(x))
-    x
-}
-
 ###########################
 # Define UI for application
 ui <- fluidPage(
     # Application title
     titlePanel("Darla Jobs Analysis"),
-
-    # Show a plot
-    wellPanel(
-        fluidRow(
-            plotOutput("date_plot", height = "400")
-    )),
     
-    wellPanel(
-        fluidRow(
-            column(4,
-                selectInput("queue_type", "Select Queue",
-                    choices = c("critical", "secondary", "tertiary")
-            )),
-            column(4,
-                selectInput("stat", "Select statistic",
-                    #choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
-                    choices = names(summ)[-(1:3)]
-            ))
-        ),
-        fluidRow(
-            column(4,
-                uiOutput(
-                    "job_types",
-            )),
-        
-            column(4,
-                selectInput("exclude_days", "Exclude days of week",
-                    choices = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-                    multiple = TRUE
-            )),
-        
-            column(4,
-                airDatepickerInput("exclude_dates", "Exclude dates",
-                    minDate = min_date,
-                    maxDate = max_date,
-                    multiple = TRUE,
-                    dateFormat = 'yyyy/mm/dd'
-            ))
-    )
+    fluidRow(
+        column(4,
+            selectInput("queue_type", "Select Queue",
+                choices = c("critical", "secondary", "tertiary")
+        )),
+        column(4,
+            selectInput("stat", "Select statistic",
+                #choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
+                choices = names(summ)[-(1:3)]
+        )),
+    
+        column(4,
+            uiOutput(
+                "job_types",
+        )),
+    
+        column(4,
+            selectInput("exclude_days", "Exclude day of week",
+                choices = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+                multiple = TRUE
+        )),
+    
+        column(4,
+            airDatepickerInput("exclude_dates", "Exclude dates",
+                minDate = min_date,
+                maxDate = max_date,
+                multiple = TRUE,
+                dateFormat = 'yyyy/mm/dd'
+        ))
     ),
     
+    # Show a plot
+    plotOutput("date_plot", height = "600"),
     
-    titlePanel("Summary (delay and execution time in minutes)"),
-    fluidRow(
-        dataTableOutput("summ_by_date")
-    )
+    dataTableOutput("summ_by_date")
 )
 
 
@@ -126,28 +103,9 @@ server <- function(input, output, session) {
     print("")
     print("##################################")
     
-    observe({
-        if(DEBUG == 1) {
-             print(paste("Inputs: queue_type", queue_type_in()))
-             print(paste("Inputs: statistic", stat()))
-             print(paste("Inputs: exclude days", toString(exclude_days())))
-             print(paste("Inputs: exclude dates", toString(exclude_dates())))
-             print(paste("Inputs: job types", toString(job_types())))
-        }
-    }) 
-    job_types <- reactiveVal(value = NULL)
-    
-    observeEvent(queue_type_in(), {
-        job_types(NULL)
-        print(paste("QT, JT:", queue_type_in(), job_types()))
-    })
-    
-    observeEvent(input$job_types, {
-        job_types(input$job_types)
-    })
-    
     queue_type_in <- reactive({ input$queue_type })
     stat <- reactive({ input$stat })
+    job_types <- reactive({ input$job_types })
     
     exclude_days <- reactive({
         exclude_days <- input$exclude_days
@@ -203,12 +161,18 @@ server <- function(input, output, session) {
     })
     
     output$job_types <- renderUI({
-        selectInput("job_types", "Filter by job type",
+        selectInput("job_types", 
+                           "Filter by job type",
                            choices = events[[queue_type_in()]],
                            multiple = TRUE)
     })
     
     output$date_plot <- renderPlot({
+        print(paste("Inputs:", queue_type_in(), stat()))
+        print(paste("Inputs: exclude days", toString(exclude_days())))
+        print(paste("Inputs: exclude dates", toString(exclude_dates())))
+        print(paste("Inputs: job types", toString(job_types())))
+        
         plot_by_date(summ_by_date(), stat(), title())
     })
     
@@ -216,7 +180,6 @@ server <- function(input, output, session) {
     #print(session)
     
     output$summ_by_date <- renderDataTable(summ_by_date())
-    #output$summ_by_date <- renderDataTable(summ_small_headers(summ_by_date()))
 }
 
 # Run the application 
