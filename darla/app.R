@@ -103,9 +103,18 @@ server <- function(input, output, session) {
     print("")
     print("##################################")
     
+    job_types <- reactiveVal(NULL)
+    observeEvent(input$job_types, {
+        job_types(input$job_types)
+    } )
+    
+    observeEvent(input$queue_type, {
+        job_types(NULL)
+        #updateSelectInput(session, "job_types")
+    } )
+    
     queue_type_in <- reactive({ input$queue_type })
     stat <- reactive({ input$stat })
-    job_types <- reactive({ input$job_types })
     
     exclude_days <- reactive({
         exclude_days <- input$exclude_days
