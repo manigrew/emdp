@@ -3,7 +3,7 @@ library(shinyWidgets)
 library(dplyr)
 library(ggplot2)
 
-DEBUG <- 1
+DEBUG <- 0
 
 setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
 
@@ -113,7 +113,7 @@ ui <- fluidPage(
         )
     ),
     
-    dataTableOutput("summ_by_date")
+    dataTableOutput("summ_filtered")
 )
 
 
@@ -133,7 +133,7 @@ server <- function(input, output, session) {
         job_types(NULL)
         updateSelectInput(session, "job_types", 
                            "Filter by job type",
-                           choices = events[[queue_type()]],
+                           choices = events[[queue_type()]]
                           )
     })
     
@@ -151,7 +151,7 @@ server <- function(input, output, session) {
     })
     
     title <- reactive({
-        paste0("\nQueue:", queue_type(),
+        title <- paste0("\nQueue:", queue_type(),
             ifelse(
                    job_types() != "NULL",
                    paste("\nJob types:", toString(job_types())),
@@ -168,25 +168,40 @@ server <- function(input, output, session) {
                 ""
             )
         )
+        print(paste("Calculating title: ", title))
+        title
     })
         
-    summ_by_date <- reactive({
+    by_date <- reactive({
+        print("Calculating by_date")
         if(!is.null(job_types())) {
-            print("filtering by job_types")
-            summ <- by_date %>%
+            print("\tfiltering by job_types")
+            dat %>%
                 filter( eventTypeEnum %in% job_types()) %>%
-                group_by(queue_type, sched_date, sched_day) %>%
-                summarise(
+                group_by(queue_type, sched_date, sched_day)
+        } else {
+            dat %>%
+                group_by(queue_type, sched_date, sched_day)
+        }
+        
+    })
+    
+    summ <- reactive({
+        print(paste("Summarizing #rows:", nrow(by_date())))
+        by_date() %>% 
+            summarise(
                     average_delay_minutes = mean(delay_min),
                     total_delay_minutes = sum(delay_min),
                     average_execution_minutes = mean(secs / 60),
                     total_execution_minutes = sum(secs / 60),
                     max_delay_minutes = max(delay_min),
                     count = n()
-                )
-        }
+           )
+    })
         
-        summ %>%
+    summ_filtered <- reactive({
+        print("Filtering")
+        summ() %>%
             filter(queue_type == queue_type()) %>%
             filter(!sched_day %in% exclude_days()) %>%
             filter(!sched_date %in% exclude_dates()) #%>%
@@ -201,13 +216,14 @@ server <- function(input, output, session) {
     # })
     
     output$date_plot <- renderPlot({
-        plot_by_date(summ_by_date(), stat(), title())
+        plot_by_date(summ_filtered(), stat(), title())
+        #plot_by_date(summ_filtered(), stat(), "title()")
     })
     
     output$mysession = renderPrint({c("<pre>", session, "</pre>")})
     #print(session)
     
-    output$summ_by_date <- renderDataTable(summ_by_date())
+    output$summ_filtered <- renderDataTable(summ_filtered())
 }
 
 # Run the application 
