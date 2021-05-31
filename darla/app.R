@@ -24,6 +24,8 @@ if(DEBUG) {
 min_date <- as.Date(dat$scheduledFor[1])
 max_date <- as.Date(dat$scheduledFor[nrow(dat)])
 
+day_colors = c("Mon" = "#460054", "Tue" = "#443a83", "Wed" = "#2f698e", "Thu" = "#1c928c", "Fri" = "#2eba76", "Sat" = "#8ed940", "Sun" = "#fae920")
+    
 plot_by_date <- function(x, y, desc) {
     what <- gsub("_", " ", y)
     title <- paste("By date:", what, desc)
@@ -33,7 +35,7 @@ plot_by_date <- function(x, y, desc) {
     #idx_rel1 <- which(x$sched_date == "2021/04/18")
     #idx_rel2 <- which(x$sched_date == "2021/05/06")
     
-    day_colors = c("Mon" = "#460054", "Tue" = "#443a83", "Wed" = "#2f698e", "Thu" = "#1c928c", "Fri" = "#2eba76", "Sat" = "#8ed940", "Sun" = "#fae920")
+    #day_colors = c("Mon" = "#460054", "Tue" = "#443a83", "Wed" = "#2f698e", "Thu" = "#1c928c", "Fri" = "#2eba76", "Sat" = "#8ed940", "Sun" = "#fae920")
     
     p <- x %>%
         ggplot(aes(x = sched_date)) +
@@ -52,17 +54,30 @@ plot_by_date <- function(x, y, desc) {
     print(p)
 }
 
+plot_by_time <- function(x, y, desc) {
+    what <- gsub("_", " ", y)
+    title <- paste("By time:", what, desc)
+    
+    print(title)
+    
+    p <- x %>%
+        ggplot(aes(x = sched_time_30)) +
+        geom_col(aes_string(y = y, fill = "sched_day"), position = "dodge") +
+        theme(axis.text.x = element_text(angle = 90, size = 11, vjust = 0.7)) +
+        xlab("Scheduled Time") +
+        ylab(what) +
+        ggtitle(title) +
+        scale_fill_manual(values = day_colors) +
+        scale_x_discrete(breaks = x$sched_time_30[seq(1, nrow(x), 2)])
+    
+    print(p)
+}
+
 ###########################
 # Define UI for application
 ui <- fluidPage(
     # Application title
     titlePanel("Darla Jobs Analysis"),
-    
-    wellPanel(
-        fluidRow(
-            plotOutput("date_plot")
-        )
-    ),
     
     wellPanel(
         fluidRow(
@@ -73,7 +88,7 @@ ui <- fluidPage(
             column(4,
                 selectInput("stat", "Select statistic",
                     choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
-                    #choices = names(summ)[-(1:3)]
+                    #choices = names(summ_date)[-(1:3)]
             )),
         
             column(4,
@@ -100,7 +115,18 @@ ui <- fluidPage(
         )
     ),
     
-    dataTableOutput("summ_filtered")
+    tabsetPanel  (id ="tsp", type = "tabs",
+        tabPanel(title = "Date",
+                plotOutput("date_plot"),
+            dataTableOutput("summ_filtered_date")
+        ),
+        
+        tabPanel(title = "Time",
+                plotOutput("time_plot"),
+            dataTableOutput("summ_filtered_time")
+        )
+    
+    )
 )
 
 
@@ -162,7 +188,7 @@ server <- function(input, output, session) {
     by_date <- reactive({
         print("Calculating by_date")
         if(!is.null(job_types())) {
-            print("\tfiltering by job_types")
+            print("\tfiltering by date by job_types")
             dat %>%
                 filter( eventTypeEnum %in% job_types()) %>%
                 group_by(queue_type, sched_date, sched_day)
@@ -173,7 +199,22 @@ server <- function(input, output, session) {
         
     })
     
-    summ <- reactive({
+    by_time <- reactive({
+        print("Calculating by_time")
+        if(!is.null(job_types())) {
+            print("\tfiltering by time by job_types")
+            dat %>%
+                filter( eventTypeEnum %in% job_types()) %>%
+                group_by(queue_type, sched_time_30, sched_day)
+        } else {
+            dat %>%
+                group_by(queue_type, sched_time_30, sched_day)
+        }
+        
+    })
+    
+    
+    summ_date <- reactive({
         print(paste("Summarizing #rows:", nrow(by_date())))
         by_date() %>% 
             summarise(
@@ -185,32 +226,55 @@ server <- function(input, output, session) {
                     count = n()
            )
     })
+    
+    summ_time <- reactive({
+        print(paste("Summarizing #rows:", nrow(by_time())))
+        by_time() %>% 
+            summarise(
+                    average_delay_minutes = mean(delay_min),
+                    total_delay_minutes = sum(delay_min),
+                    average_execution_minutes = mean(secs / 60),
+                    total_execution_minutes = sum(secs / 60),
+                    max_delay_minutes = max(delay_min),
+                    count = n()
+           )
+    })
         
-    summ_filtered <- reactive({
+    
+    summ_filtered_date <- reactive({
         print("Filtering")
-        summ() %>%
+        summ_date() %>%
             filter(queue_type == queue_type()) %>%
             filter(!sched_day %in% exclude_days()) %>%
             filter(!sched_date %in% exclude_dates()) #%>%
             
     })
     
-    # output$job_types <- renderUI({
-    #     selectInput("job_types", 
-    #                        "Filter by job type",
-    #                        choices = events[[queue_type()]],
-    #                        multiple = TRUE)
-    # })
+    summ_filtered_time <- reactive({
+        print("Filtering")
+        summ_time() %>%
+            filter(queue_type == queue_type()) %>%
+            filter(!sched_day %in% exclude_days()) #%>%
+            #filter(!sched_time_30 %in% exclude_dates()) #%>%
+            
+    })
     
     output$date_plot <- renderPlot({
-        plot_by_date(summ_filtered(), stat(), title())
+        plot_by_date(summ_filtered_date(), stat(), title())
         #plot_by_date(summ_filtered(), stat(), "title()")
     })
     
-    output$mysession = renderPrint({c("<pre>", session, "</pre>")})
+    output$time_plot <- renderPlot({
+        plot_by_time(summ_filtered_time(), stat(), title())
+        #plot_by_date(summ_filtered(), stat(), "title()")
+    })
+    
+    output$summ_filtered_date <- renderDataTable(summ_filtered_date())
+    output$summ_filtered_time <- renderDataTable(summ_filtered_time())
+    
+    #output$mysession = renderPrint({c("<pre>", session, "</pre>")})
     #print(session)
     
-    output$summ_filtered <- renderDataTable(summ_filtered())
 }
 
 # Run the application 
