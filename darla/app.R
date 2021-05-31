@@ -21,19 +21,6 @@ if(DEBUG) {
     options(shiny.reactlog = TRUE)
 }
 
-by_date <- dat %>%
-    group_by(queue_type, sched_date, sched_day)
-
-summ <- by_date %>%
-    summarise(
-        average_delay_minutes = mean(delay_min),
-        total_delay_minutes = sum(delay_min),
-        average_execution_minutes = mean(secs / 60),
-        total_execution_minutes = sum(secs / 60),
-        max_delay_minutes = max(delay_min),
-        count = n()
-    )
-
 min_date <- as.Date(dat$scheduledFor[1])
 max_date <- as.Date(dat$scheduledFor[nrow(dat)])
 
@@ -85,8 +72,8 @@ ui <- fluidPage(
             )),
             column(4,
                 selectInput("stat", "Select statistic",
-                    #choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
-                    choices = names(summ)[-(1:3)]
+                    choices = c("average_delay_minutes", "total_delay_minutes", "average_execution_minutes", "total_execution_minutes", "max_delay_minutes", "count")
+                    #choices = names(summ)[-(1:3)]
             )),
         
             column(4,
