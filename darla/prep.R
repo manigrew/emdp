@@ -64,18 +64,21 @@ events_tertiary <- sort(
   ))
 
 events = list(critical = events_critical, secondary = events_secondary, tertiary = events_tertiary)
-saveRDS(events, file = "events.RDS")
 
 setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
 
+saveRDS(events, file = "events.RDS")
+
 inactive_sites <- read_excel("RFC-2373-inactive-site-list.xlsx")
 
-dat1 <- read.csv("eventmetrics1.csv")
-dat2 <- read.csv("eventmetrics2.csv")
-dat3 <- read.csv("eventmetrics3.csv")
+dat1 <- read.csv("csvs/eventmetrics1.csv")
+dat2 <- read.csv("csvs/eventmetrics2.csv")
+dat3 <- read.csv("csvs/eventmetrics3.csv")
+dat4 <- read.csv("csvs/eventmetrics4.csv")
+dat5 <- read.csv("csvs/eventmetrics5.csv")
 
-dat <- rbind(dat1, dat2, dat3)
-dat1 <- dat2 <- dat3 <- NULL
+dat <- rbind(dat1, dat2, dat3, dat4, dat5)
+dat1 <- dat2 <- dat3 <- dat4 <- dat5 <- NULL
 
 # drop unused cols
 dat <-
@@ -158,7 +161,7 @@ dat$period <- c(
   rep("Release2", nrow(dat) - idx_rel2)
 )
 
-
+saveRDS(dat, file = "dat.RDS")
 proc.time() - st
 
 st <- proc.time()
