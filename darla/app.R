@@ -5,7 +5,7 @@ library(ggplot2)
 
 DEBUG <- 0
 
-setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
+#setwd("C:/Users/manish.grewal/git-emdp/emdp/darla")
 
 # load data
 events = readRDS("events.RDS")
