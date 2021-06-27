@@ -2,7 +2,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-setwd("C:/Users/manish.grewal/emdp/R/scrum")
+setwd("C:/Users/manish.grewal/git-emdp/emdp/scrum")
 dat <- read.csv("Scrum.csv")
 
 dat$Sprint <- sub("^20", "", dat$Sprint) # 2020-01 to 20-01
