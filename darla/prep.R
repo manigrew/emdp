@@ -76,9 +76,10 @@ dat2 <- read.csv("csvs/eventmetrics2.csv")
 dat3 <- read.csv("csvs/eventmetrics3.csv")
 dat4 <- read.csv("csvs/eventmetrics4.csv")
 dat5 <- read.csv("csvs/eventmetrics5.csv")
+dat6 <- read.csv("csvs/eventmetrics6.csv")
 
-dat <- rbind(dat1, dat2, dat3, dat4, dat5)
-dat1 <- dat2 <- dat3 <- dat4 <- dat5 <- NULL
+dat <- rbind(dat1, dat2, dat3, dat4, dat5, dat6)
+dat1 <- dat2 <- dat3 <- dat4 <- dat5 <- dat6 <- NULL
 
 # drop unused cols
 dat <-
@@ -152,13 +153,13 @@ dat$sched_time_30 <- paste0(substr(dat$sched_time, 1, 3),
 dat$active <-
   ifelse(dat$lcecSiteId %in% inactive_sites$Site, "inactive", "active")
 
-idx_rel1 <- which(dat$scheduledFor == "2021/04/18 12:00:00")[1]
+#idx_rel1 <- which(dat$scheduledFor == "2021/04/18 12:00:00")[1]
 idx_rel2 <- which(dat$scheduledFor == "2021/05/06 09:00:00")[1]
 
 dat$period <- c(
-  rep("Before", idx_rel1),
-  rep("Release1", idx_rel2 - idx_rel1),
-  rep("Release2", nrow(dat) - idx_rel2)
+  rep("Pre", idx_rel2),
+  #rep("Release1", idx_rel2 - idx_rel1),
+  rep("Rel", nrow(dat) - idx_rel2)
 )
 
 saveRDS(dat, file = "dat.RDS")
